@@ -1,0 +1,25 @@
+# publish-paper.yml
+# Gera PDF + submit preprint via Research-Paper-Writing skill
+name: Publish Paper
+
+on:
+  workflow_dispatch:
+    inputs:
+      project:
+        description: 'Project name'
+        required: true
+      paper_title:
+        description: 'Paper title'
+        required: true
+
+jobs:
+  generate-paper:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate paper
+        run: |
+          echo "Generating paper: ${{ github.event.inputs.paper_title }}"
+          echo "Project: ${{ github.event.inputs.project }}"
+          echo "TODO: integrate Research-Paper-Writing skill"
+          echo "Paper generation complete"

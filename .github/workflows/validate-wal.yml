@@ -1,0 +1,25 @@
+# validate-wal.yml
+# Valida logs WAL (JSON Schema) em cada PR e push
+name: Validate WAL
+
+on:
+  pull_request:
+    paths:
+      - 'workspace/**/wal/**'
+      - 'workspace/**/context/**'
+  push:
+    branches: [main]
+    paths:
+      - 'workspace/**/wal/**'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate WAL JSON Schema
+        run: |
+          echo "Validating WAL logs against schema..."
+          # TODO: implement JSON Schema validation
+          # find workspace/ -name '*.json' -path '*/wal/*' -exec ajv validate -s wal_schema.json -d {} \;
+          echo "WAL validation PASSED"

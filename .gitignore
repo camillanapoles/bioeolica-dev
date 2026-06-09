@@ -1,0 +1,36 @@
+# Bioeolica-dev — Platforma de Engenharia Multi-Agente
+# ====================================================
+# Ignorar dependências e artefatos de build
+
+node_modules/
+.env
+.env.local
+*.pyc
+__pycache__/
+.jupyter/
+.ipynb_checkpoints/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Dados grandes versionados via DVC
+data/mesh/
+data/results/
+data/backup/
+
+# Logs locais
+logs/
+*.log
+
+# Workspace computacional (criado por projeto)
+workspace/
+
+# Config local
+.claude/settings.local.json

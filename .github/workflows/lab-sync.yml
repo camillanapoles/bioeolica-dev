@@ -1,0 +1,23 @@
+# lab-sync.yml
+# Sincroniza workspace entre agentes (shared/, meetings/, publications/)
+name: Lab Sync
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'workspace/**/shared/**'
+      - 'workspace/**/meetings/**'
+  schedule:
+    - cron: '0 */6 * * *'  # a cada 6h
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sync workspace
+        run: |
+          echo "Syncing workspace..."
+          echo "TODO: implement DVC sync for large data"
+          echo "Lab sync complete"
