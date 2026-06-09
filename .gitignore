@@ -32,5 +32,12 @@ logs/
 # Workspace computacional (criado por projeto)
 workspace/
 
+# Embedded git repos (submodules or external skills)
+.claude/skill/
+knowledge/MathematicalEngineeringDeepLearning
+
+# Test/dummy directories
+${HOME}/
+
 # Config local
 .claude/settings.local.json
