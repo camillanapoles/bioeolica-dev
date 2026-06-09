@@ -95,9 +95,9 @@ fi
 # 4. Verifica relationships se presentes
 if jq -e '.relationships' "$CONTEXT_FILE" > /dev/null 2>&1; then
     echo -e "${YELLOW}Verificando relationships...${NC}"
-    # Verifica se targets de relationships são não-nulos
-    jq -r '.relationships | to_entries[] | "\(.key): \(.value.target // "none")"' "$CONTEXT_FILE" 2>/dev/null | while read -r rel; do
-        if echo "$rel" | grep -q "none"; then
+    # Verifica se targets de relationships são não-nulos (suporta array de strings e objeto com .target)
+    jq -r '.relationships | to_entries[] | .key as $k | (.value | if type == "array" then (. // [] | join(", ")) else (.target // "none") end) | "\($k): \(.)"' "$CONTEXT_FILE" 2>/dev/null | while read -r rel; do
+        if echo "$rel" | grep -qE "(none|\[\])$"; then
             echo -e "  ${YELLOW}⚠${NC} $rel — target ausente (warning)"
         else
             echo -e "  ${GREEN}✓${NC} $rel"
