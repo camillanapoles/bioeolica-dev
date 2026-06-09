@@ -8,11 +8,23 @@ compartilhando dados de forma controlada e registrando decisões, reuniões e va
 
 ```
 workspace/{projeto}/
-├── context/               # F1: Captura de Contexto
-│   ├── 5w1h.json          # What, Why, Who, When, Where, How, How Much
-│   ├── ishikawa.md         # Diagrama de causa-efeito
-│   ├── constraints.md      # Restrições de projeto, normas, orçamento
-│   └── problem_statement.md # Descrição formal do problema
+├── context/               # Engenharia de Contexto (sistema nervoso do time)
+│   ├── ontology.json      # Schema ontológico: classes, propriedades, relacionamentos
+│   ├── index.json         # Índice de todos os contextos do projeto
+│   ├── graph.json         # Grafo de conhecimento serializado + queries
+│   ├── quality_gates.json # 4 gates de qualidade (schema+sanity+freshness+revisor)
+│   ├── materials/         # Propriedades de materiais
+│   ├── loads/             # Condições de carregamento
+│   ├── constraints/       # Restrições de projeto
+│   ├── components/        # Componentes físicos
+│   ├── methods/           # Métodos numéricos selecionados
+│   ├── tools/             # Ferramentas computacionais
+│   ├── decisions/         # Decisões de projeto
+│   ├── simulations/       # Simulações executadas
+│   ├── publications/      # Artigos e relatórios
+│   ├── meetings/          # Reuniões do time
+│   └── lineage/           # Rastreabilidade de contextos
+├── domains/                # F2: Mapeamento de Domínios
 ├── domains/                # F2: Mapeamento de Domínios
 │   ├── relevance_check.md  # Relevance check dos domínios aplicáveis
 │   ├── m3_matrix.md        # Matriz M³ por domínio
