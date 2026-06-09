@@ -30,7 +30,11 @@ logs/
 *.log
 
 # Workspace computacional (criado por projeto)
-workspace/
+# Template e README versionados; projetos instanciados são ignorados
+workspace/*
+!workspace/README.md
+!workspace/template/
+!workspace/template/**/*
 
 # Embedded git repos (submodules or external skills)
 .claude/skill/
