@@ -1,25 +1,286 @@
 # publish-paper.yml
-# Gera PDF + submit preprint via Research-Paper-Writing skill
+# Gera PDF + estrutura de paper via template CRSLR + Research-Paper-Writing skill
+# Conecta F8 (Comunicar Resultados) → F10 (Publicar) do workflow Omnibus
 name: Publish Paper
 
 on:
   workflow_dispatch:
     inputs:
       project:
-        description: 'Project name'
+        description: 'Project name (e.g., pa-eolica-v3)'
         required: true
       paper_title:
         description: 'Paper title'
         required: true
+      authors:
+        description: 'Authors (comma-separated)'
+        required: false
+        default: 'Agente Multidisciplinar'
+      journal:
+        description: 'Target journal/archive (e.g., arXiv, engrXiv, JBE)'
+        required: false
+        default: 'engrXiv'
+      template:
+        description: 'Paper template (IMRaD | CRSLR)'
+        required: false
+        default: 'IMRaD'
 
 jobs:
   generate-paper:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Generate paper
+
+      - name: Install publishing tools
         run: |
-          echo "Generating paper: ${{ github.event.inputs.paper_title }}"
-          echo "Project: ${{ github.event.inputs.project }}"
-          echo "TODO: integrate Research-Paper-Writing skill"
-          echo "Paper generation complete"
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq pandoc texlive-latex-base texlive-latex-extra \
+            texlive-fonts-recommended texlive-fonts-extra texlive-science \
+            texlive-publishers texlive-bibtex-extra biber
+          pip install pandoc-latex-environment 2>/dev/null || true
+          echo "Tools installed"
+
+      - name: Gather project context
+        id: context
+        run: |
+          PROJECT_DIR="workspace/${{ github.event.inputs.project }}"
+          echo "project_dir=$PROJECT_DIR" >> "$GITHUB_OUTPUT"
+
+          # Find project data
+          if [ -d "$PROJECT_DIR" ]; then
+            echo "Project directory: $PROJECT_DIR"
+            echo "Contents:"
+            find "$PROJECT_DIR" -type f | head -50
+            CONTEXT_FILES=$(find "$PROJECT_DIR" -name '*.json' -path '*/context/*' 2>/dev/null || true)
+            echo "context_count=$(echo "$CONTEXT_FILES" | wc -l)" >> "$GITHUB_OUTPUT"
+          else
+            echo "Project not found. Using template context."
+            echo "context_count=0" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Generate CRSLR structure
+        id: generate
+        run: |
+          PROJECT="${{ github.event.inputs.project }}"
+          TITLE="${{ github.event.inputs.paper_title }}"
+          AUTHORS="${{ github.event.inputs.authors }}"
+          JOURNAL="${{ github.event.inputs.journal }}"
+          TEMPLATE="${{ github.event.inputs.template }}"
+          export PROJECT TITLE AUTHORS JOURNAL TEMPLATE
+
+          OUTPUT_DIR="workspace/$PROJECT/publications"
+          mkdir -p "$OUTPUT_DIR"
+
+          # Sanitize filename
+          SAFE_TITLE=$(echo "$TITLE" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-//;s/-$//')
+
+          # Build paper directory
+          PAPER_DIR="$OUTPUT_DIR/$SAFE_TITLE"
+          mkdir -p "$PAPER_DIR/figures"
+          mkdir -p "$PAPER_DIR/data"
+          export PAPER_DIR SAFE_TITLE OUTPUT_DIR
+
+          echo "Paper directory: $PAPER_DIR"
+
+          # Generate markdown paper via python to safely handle markdown content in YAML
+          python3 << 'PYEOF'
+import os, json, datetime
+
+project = os.environ.get('PROJECT', 'unknown')
+title = os.environ.get('TITLE', 'Untitled')
+authors = os.environ.get('AUTHORS', 'Unknown')
+journal = os.environ.get('JOURNAL', 'engrXiv')
+paper_dir = os.environ.get('PAPER_DIR', '/tmp/paper')
+
+now = datetime.datetime.now().strftime('%Y-%m-%d')
+
+paper = []
+paper.append('---')
+paper.append('title: "' + title + '"')
+paper.append('author: "' + authors + '"')
+paper.append('date: ' + now)
+paper.append('journal: "' + journal + '"')
+paper.append('project: "' + project + '"')
+paper.append('---')
+paper.append('')
+paper.append('# ' + title)
+paper.append('')
+paper.append('**Autores:** ' + authors)
+paper.append('**Projeto:** ' + project)
+paper.append('**Data:** ' + now)
+paper.append('')
+paper.append('## Resumo')
+paper.append('')
+paper.append('<!-- Gerado a partir do contexto do projeto e resultados VVV -->')
+paper.append('')
+paper.append('Este artigo apresenta a análise computacional do sistema ' + project)
+paper.append('utilizando a metodologia KDI/Omnibus v3.0 com aplicacao dos 10 dominios')
+paper.append('de engenharia e validacao VVV.')
+paper.append('')
+paper.append('_Resumo a ser preenchido com base nos resultados do projeto._')
+paper.append('')
+paper.append('## 1. Introducao')
+paper.append('')
+paper.append('### 1.1 Contexto')
+paper.append('<!-- F1 do workflow -- contextualizacao do problema de engenharia -->')
+paper.append('')
+paper.append('### 1.2 Estado da Arte')
+paper.append('<!-- Revisao baseada no RAG Knowledge (M6) -- fontes coletadas durante a analise -->')
+paper.append('')
+paper.append('## 2. Metodologia')
+paper.append('')
+paper.append('### 2.1 Dominios e Escalas')
+paper.append('<!-- F2-F3 -- dominios relevantes com M3 (macro, meso, micro) -->')
+paper.append('')
+paper.append('### 2.2 Ferramentas Computacionais')
+paper.append('<!-- F4 -- ferramentas open source selecionadas com versoes e parametros -->')
+paper.append('')
+paper.append('### 2.3 Validacao VVV')
+paper.append('<!-- F5 -- verificacao, validacao e certificacao com metricas de erro -->')
+paper.append('')
+paper.append('## 3. Resultados')
+paper.append('')
+paper.append('### 3.1 Analise Macro')
+paper.append('<!-- Resultados na escala macro -- sistema completo -->')
+paper.append('')
+paper.append('### 3.2 Analise Meso')
+paper.append('<!-- Resultados na escala meso -- interfaces e subsistemas -->')
+paper.append('')
+paper.append('### 3.3 Analise Micro')
+paper.append('<!-- Resultados na escala micro -- componentes e materiais -->')
+paper.append('')
+paper.append('## 4. Discussao')
+paper.append('')
+paper.append('### 4.1 Interpretacao dos Resultados')
+paper.append('### 4.2 Limitacoes')
+paper.append('<!-- Limitacoes documentadas no F8 -- suposicoes, simplificacoes, gaps -->')
+paper.append('### 4.3 Comparacao com Literatura')
+paper.append('')
+paper.append('## 5. Conclusao')
+paper.append('')
+paper.append('### 5.1 Contribuicoes')
+paper.append('### 5.2 Trabalhos Futuros')
+paper.append('')
+paper.append('## Agradecimentos')
+paper.append('')
+paper.append('## Referencias')
+paper.append('')
+paper.append('<!-- Geradas a partir do RAG Knowledge -- todas as fontes utilizadas no ciclo F1-F9 -->')
+
+outpath = os.path.join(paper_dir, 'paper.md')
+with open(outpath, 'w') as f:
+    f.write('\n'.join(paper) + '\n')
+print('Paper generated:', outpath)
+PYEOF
+
+          echo "Paper markdown generated: $PAPER_DIR/paper.md"
+          echo "paper_dir=$PAPER_DIR" >> "$GITHUB_OUTPUT"
+          echo "safe_title=$SAFE_TITLE" >> "$GITHUB_OUTPUT"
+
+      - name: Include VVV results
+        run: |
+          PAPER_DIR="${{ steps.generate.outputs.paper_dir }}"
+          PROJECT="${{ github.event.inputs.project }}"
+
+          # Find VVV reports and embed references
+          VVV_REPORTS=$(find workspace/$PROJECT -name '*vvv*' -name '*.md' 2>/dev/null || true)
+          if [ -n "$VVV_REPORTS" ]; then
+            echo "$VVV_REPORTS" | while read -r report; do
+              echo "Found VVV report: $report"
+              cp "$report" "$PAPER_DIR/data/" 2>/dev/null || true
+            done
+          fi
+
+          # Find context files and link them
+          CONTEXT_FILES=$(find workspace/$PROJECT -name '*.json' -path '*/context/*' 2>/dev/null || true)
+          if [ -n "$CONTEXT_FILES" ]; then
+            echo "$CONTEXT_FILES" | head -10 > "$PAPER_DIR/data/sources.txt"
+            echo "Context sources linked"
+          fi
+
+      - name: Compile PDF
+        run: |
+          PAPER_DIR="${{ steps.generate.outputs.paper_dir }}"
+          SAFE_TITLE="${{ steps.generate.outputs.safe_title }}"
+
+          echo "Compiling PDF..."
+
+          # Try pandoc with PDF engine
+          if command -v pandoc &> /dev/null; then
+            # Build PDF with xelatex for better Unicode support
+            pandoc "$PAPER_DIR/paper.md" \
+              -o "$PAPER_DIR/$SAFE_TITLE.pdf" \
+              --pdf-engine=xelatex \
+              --from markdown \
+              --template=template.tex 2>/dev/null \
+              || pandoc "$PAPER_DIR/paper.md" \
+                 -o "$PAPER_DIR/$SAFE_TITLE.pdf" \
+                 --pdf-engine=pdflatex \
+                 --from markdown 2>/dev/null \
+              || {
+                echo "PDF compilation with pandoc failed — generating HTML instead"
+                pandoc "$PAPER_DIR/paper.md" -o "$PAPER_DIR/$SAFE_TITLE.html" --standalone
+                echo "HTML output: $PAPER_DIR/$SAFE_TITLE.html"
+              }
+            echo "PDF: $PAPER_DIR/$SAFE_TITLE.pdf"
+          else
+            echo "pandoc not available — creating plain text output"
+            cp "$PAPER_DIR/paper.md" "$PAPER_DIR/$SAFE_TITLE.txt"
+          fi
+
+      - name: Generate publication record
+        run: |
+          python3 << 'PYEOF'
+import os, json, datetime
+
+paper_dir = os.environ.get('PAPER_DIR', '/tmp/paper')
+safe_title = os.environ.get('SAFE_TITLE', 'paper')
+title = os.environ.get('TITLE', 'Untitled')
+authors = os.environ.get('AUTHORS', 'Unknown')
+project = os.environ.get('PROJECT', 'unknown')
+now = datetime.datetime.now().isoformat()
+
+record = {
+    "id": f"PUB-{datetime.date.today().strftime('%Y%m%d')}-{safe_title[:16]}",
+    "title": title,
+    "authors": authors,
+    "project": project,
+    "date": now,
+    "status": "draft",
+    "files": {
+        "markdown": "paper.md",
+        "pdf": f"{safe_title}.pdf"
+    },
+    "vvv_certification": "PENDING"
+}
+
+outpath = os.path.join(paper_dir, 'publication.json')
+with open(outpath, 'w') as f:
+    json.dump(record, f, indent=2, ensure_ascii=False)
+print('Publication record:', outpath)
+PYEOF
+
+      - name: Upload paper artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: paper-${{ steps.generate.outputs.safe_title }}
+          path: ${{ steps.generate.outputs.paper_dir }}
+          retention-days: 90
+
+      - name: Summary
+        run: |
+          echo "══════════════════════════════════"
+          echo "  PAPER GENERATION COMPLETE"
+          echo "══════════════════════════════════"
+          echo "  Title:    ${{ github.event.inputs.paper_title }}"
+          echo "  Project:  ${{ github.event.inputs.project }}"
+          echo "  Authors:  ${{ github.event.inputs.authors }}"
+          echo "  Template: ${{ github.event.inputs.template }}"
+          echo "  Output:   ${{ steps.generate.outputs.paper_dir }}"
+          echo "══════════════════════════════════"
+          echo ""
+          echo "Next steps:"
+          echo "  1. Review paper at ${{ steps.generate.outputs.paper_dir }}/paper.md"
+          echo "  2. Fill in sections marked with <!-- --> comments"
+          echo "  3. Download PDF artifact from this workflow run"
+          echo "  4. Submit to ${{ github.event.inputs.journal }}"

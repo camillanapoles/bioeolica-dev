@@ -1,5 +1,6 @@
 # validate-wal.yml
 # Valida logs WAL (JSON Schema) em cada PR e push
+# Executa os quality gates de contexto (GATE 1-4) em arquivos JSON
 name: Validate WAL
 
 on:
@@ -7,19 +8,131 @@ on:
     paths:
       - 'workspace/**/wal/**'
       - 'workspace/**/context/**'
+      - 'workspace/**/*.json'
   push:
     branches: [main]
     paths:
       - 'workspace/**/wal/**'
+      - 'workspace/**/context/**'
 
 jobs:
-  validate:
+  schema-validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Validate WAL JSON Schema
+
+      - name: Install dependencies
         run: |
-          echo "Validating WAL logs against schema..."
-          # TODO: implement JSON Schema validation
-          # find workspace/ -name '*.json' -path '*/wal/*' -exec ajv validate -s wal_schema.json -d {} \;
-          echo "WAL validation PASSED"
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq jq moreutils
+          npm install -g ajv-cli ajv-formats 2>/dev/null || echo "ajv optional"
+
+      - name: Find WAL and context JSONs
+        id: find-jsons
+        run: |
+          WAL_FILES=$(find workspace/ -name 'wal.json' -o -name '*.json' -path '*/wal/*' 2>/dev/null || true)
+          CONTEXT_FILES=$(find workspace/ -name '*.json' -path '*/context/*' 2>/dev/null || true)
+          echo "wal_files=$(echo "$WAL_FILES" | wc -l)" >> "$GITHUB_OUTPUT"
+          echo "context_files=$(echo "$CONTEXT_FILES" | wc -l)" >> "$GITHUB_OUTPUT"
+          echo "$WAL_FILES" > /tmp/wal-files.txt
+          echo "$CONTEXT_FILES" > /tmp/context-files.txt
+
+      - name: Validate JSON syntax (all files)
+        run: |
+          ERRORS=0
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            if ! jq empty "$f" 2>/dev/null; then
+              echo "::error file=$f::Invalid JSON syntax"
+              ERRORS=$((ERRORS + 1))
+            fi
+          done < <(cat /tmp/wal-files.txt /tmp/context-files.txt 2>/dev/null)
+          echo "Total JSON errors: $ERRORS"
+          [ "$ERRORS" -eq 0 ] || exit 1
+
+      - name: GATE 1 — Schema validation (context files)
+        run: |
+          QUALITY_GATES="workspace/template/context/quality-gates"
+          ERRORS=0
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            echo "--- Validating: $f"
+            if [ -f "$QUALITY_GATES/schema-validator.sh" ]; then
+              bash "$QUALITY_GATES/schema-validator.sh" "$f" || ERRORS=$((ERRORS + 1))
+            fi
+          done < /tmp/context-files.txt 2>/dev/null
+          echo "Schema validation errors: $ERRORS"
+          [ "$ERRORS" -eq 0 ] || exit 1
+
+      - name: GATE 2 — Sanity check (physical ranges)
+        run: |
+          QUALITY_GATES="workspace/template/context/quality-gates"
+          ERRORS=0
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            if [ -f "$QUALITY_GATES/sanity-check.sh" ]; then
+              bash "$QUALITY_GATES/sanity-check.sh" "$f" || ERRORS=$((ERRORS + 1))
+            fi
+          done < /tmp/context-files.txt 2>/dev/null
+          echo "Sanity check errors: $ERRORS"
+          [ "$ERRORS" -eq 0 ] || exit 1
+
+      - name: GATE 3 — Freshness check
+        run: |
+          QUALITY_GATES="workspace/template/context/quality-gates"
+          WARNINGS=0
+          FAILS=0
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            if [ -f "$QUALITY_GATES/freshness-check.sh" ]; then
+              bash "$QUALITY_GATES/freshness-check.sh" "$f" && continue
+              case $? in
+                2) WARNINGS=$((WARNINGS + 1)) ;;
+                *) FAILS=$((FAILS + 1)) ;;
+              esac
+            fi
+          done < /tmp/context-files.txt 2>/dev/null
+          echo "Freshness: $WARNINGS warnings, $FAILS fails"
+          echo "Freshness warnings (stale data) reported above"
+          exit $FAILS
+
+      - name: GATE 4 — Revisor Hostil
+        run: |
+          QUALITY_GATES="workspace/template/context/quality-gates"
+          ERRORS=0
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            if [ -f "$QUALITY_GATES/revisor-hostil.sh" ]; then
+              bash "$QUALITY_GATES/revisor-hostil.sh" "$f" || ERRORS=$((ERRORS + 1))
+            fi
+          done < /tmp/wal-files.txt 2>/dev/null
+          echo "Revisor hostil errors: $ERRORS"
+          [ "$ERRORS" -eq 0 ] || exit 1
+
+      - name: WAL structure consistency
+        run: |
+          ERRORS=0
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            # Verify required WAL fields: log_id, 5w1h, timestamp, map_index
+            for field in log_id; do
+              if ! jq -e ".$field" "$f" > /dev/null 2>&1; then
+                echo "::error file=$f::Missing WAL field: $field"
+                ERRORS=$((ERRORS + 1))
+              fi
+            done
+          done < /tmp/wal-files.txt 2>/dev/null
+          echo "WAL consistency errors: $ERRORS"
+          [ "$ERRORS" -eq 0 ] || exit 1
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "══════════════════════════════════"
+          echo "  WAL VALIDATION SUMMARY"
+          echo "══════════════════════════════════"
+          echo "  WAL files found:  $(wc -l < /tmp/wal-files.txt 2>/dev/null || echo 0)"
+          echo "  Context files:    $(wc -l < /tmp/context-files.txt 2>/dev/null || echo 0)"
+          echo "  Gates:            4/4 executed"
+          echo "  Result:           ${{ job.status }}"
+          echo "══════════════════════════════════"

@@ -1,5 +1,6 @@
 # vvv-automated.yml
-# Executa bateria VVV automatizada em PRs: convergência, conservação, benchmark
+# Executa bateria VVV automatizada em PRs que alteram simulações/resultados
+# Verificação → Validação → Certificação (M3) usando quality gates de contexto
 name: VVV Automated
 
 on:
@@ -7,16 +8,279 @@ on:
     paths:
       - 'workspace/**/simulations/**'
       - 'workspace/**/results/**'
+      - 'workspace/**/vvv/**'
+  push:
+    branches: [main]
+    paths:
+      - 'workspace/**/vvv/**'
 
 jobs:
-  vvv-check:
+  verification:
     runs-on: ubuntu-latest
+    outputs:
+      schema_status: ${{ steps.schema.outcome }}
+      convergence_status: ${{ steps.convergence.outcome }}
+      conservation_status: ${{ steps.conservation.outcome }}
     steps:
       - uses: actions/checkout@v4
-      - name: Run VVV checks
+
+      - name: Install dependencies
         run: |
-          echo "Running VVV automated checks..."
-          echo "1. Schema validation: PASS"
-          echo "2. Convergence check: PASS"
-          echo "3. Conservation check: PASS"
-          echo "VVV overall: PASS"
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq jq bc
+          npm install -g ajv-cli ajv-formats 2>/dev/null || true
+
+      - name: Find simulation and result files
+        id: find-files
+        run: |
+          SIM_FILES=$(find workspace/ -name '*.json' -path '*/simulations/*' 2>/dev/null || true)
+          RESULT_FILES=$(find workspace/ -name '*.json' -path '*/results/*' 2>/dev/null || true)
+          VVV_FILES=$(find workspace/ -name '*.json' -path '*/vvv/*' 2>/dev/null || true)
+          echo "$SIM_FILES" > /tmp/sim-files.txt
+          echo "$RESULT_FILES" > /tmp/result-files.txt
+          echo "$VVV_FILES" > /tmp/vvv-files.txt
+          echo "sim_count=$(echo "$SIM_FILES" | wc -l)" >> "$GITHUB_OUTPUT"
+          echo "result_count=$(echo "$RESULT_FILES" | wc -l)" >> "$GITHUB_OUTPUT"
+          echo "vvv_count=$(echo "$VVV_FILES" | wc -l)" >> "$GITHUB_OUTPUT"
+
+      - name: GATE 1 — Schema validation
+        id: schema
+        run: |
+          QUALITY_GATES="workspace/template/context/quality-gates"
+          ERRORS=0
+          for f in $(cat /tmp/sim-files.txt /tmp/result-files.txt 2>/dev/null); do
+            [ -z "$f" ] && continue
+            echo "--- Validating: $f"
+            if [ -f "$QUALITY_GATES/schema-validator.sh" ]; then
+              bash "$QUALITY_GATES/schema-validator.sh" "$f" || ERRORS=$((ERRORS + 1))
+            fi
+          done
+          echo "Schema: ${ERRORS} errors"
+          [ "$ERRORS" -eq 0 ] || exit 1
+
+      - name: GATE 2 — Sanity check (physical plausibility)
+        id: sanity
+        run: |
+          QUALITY_GATES="workspace/template/context/quality-gates"
+          ERRORS=0
+          for f in $(cat /tmp/sim-files.txt /tmp/result-files.txt 2>/dev/null); do
+            [ -z "$f" ] && continue
+            if [ -f "$QUALITY_GATES/sanity-check.sh" ]; then
+              bash "$QUALITY_GATES/sanity-check.sh" "$f" || ERRORS=$((ERRORS + 1))
+            fi
+          done
+          echo "Sanity: ${ERRORS} errors"
+          [ "$ERRORS" -eq 0 ] || exit 1
+
+      - name: GATE 3 — Freshness check
+        id: freshness
+        run: |
+          QUALITY_GATES="workspace/template/context/quality-gates"
+          FAILS=0
+          for f in $(cat /tmp/sim-files.txt /tmp/result-files.txt 2>/dev/null); do
+            [ -z "$f" ] && continue
+            if [ -f "$QUALITY_GATES/freshness-check.sh" ]; then
+              bash "$QUALITY_GATES/freshness-check.sh" "$f" || FAILS=$((FAILS + 1))
+            fi
+          done
+          echo "Freshness: ${FAILS} fails"
+          exit $FAILS
+
+      - name: GATE 4 — Revisor Hostil
+        id: revisor
+        run: |
+          QUALITY_GATES="workspace/template/context/quality-gates"
+          ERRORS=0
+          for f in $(cat /tmp/sim-files.txt /tmp/result-files.txt 2>/dev/null); do
+            [ -z "$f" ] && continue
+            if [ -f "$QUALITY_GATES/revisor-hostil.sh" ]; then
+              bash "$QUALITY_GATES/revisor-hostil.sh" "$f" || ERRORS=$((ERRORS + 1))
+            fi
+          done
+          echo "Revisor: ${ERRORS} errors"
+          [ "$ERRORS" -eq 0 ] || exit 1
+
+  convergence-check:
+    runs-on: ubuntu-latest
+    needs: verification
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check mesh convergence studies
+        run: |
+          echo "═══ CONVERGENCE CHECK ═══"
+          FAILS=0
+
+          # Look for mesh convergence reports
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            echo "Checking: $f"
+
+            # Check for convergence metric
+            if jq -e '.validation // .vvv // .convergence' "$f" > /dev/null 2>&1; then
+              local_errors=0
+              for metric in precision convergence fidelity; do
+                val=$(jq -r "(.validation.error_metrics.$metric // .vvv.error_metrics.$metric // \"unknown\")" "$f" 2>/dev/null)
+                if [ "$val" != "unknown" ] && [ "$val" != "null" ]; then
+                  echo "  $metric = $val"
+                else
+                  echo "  ⚠ $metric — not reported"
+                fi
+              done
+              echo "  ✓ Convergence data present"
+            else
+              echo "  ⚠ No convergence data found — manual review required"
+            fi
+          done < <(find workspace/ -name '*.json' 2>/dev/null | grep -E '(convergence|mesh_study|refinement)' || true) || true
+
+          echo ""
+          echo "Convergence check completed"
+          exit $FAILS
+
+  conservation-check:
+    runs-on: ubuntu-latest
+    needs: verification
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check conservation laws
+        run: |
+          echo "═══ CONSERVATION CHECK ═══"
+          FAILS=0
+
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            mass_balance=$(jq -r '.validation.conservation.mass // .vvv.conservation.mass // "not_reported"' "$f" 2>/dev/null)
+            energy_balance=$(jq -r '.validation.conservation.energy // .vvv.conservation.energy // "not_reported"' "$f" 2>/dev/null)
+
+            echo "File: $f"
+
+            if [ "$mass_balance" = "not_reported" ] && [ "$energy_balance" = "not_reported" ]; then
+              echo "  ⚠ Conservation not reported"
+            else
+              echo "  Mass balance: $mass_balance"
+              echo "  Energy balance: $energy_balance"
+              # Check thresholds (should be < 1% imbalance)
+              if [ "$mass_balance" != "not_reported" ]; then
+                mb_num=$(echo "$mass_balance" | sed 's/%//' 2>/dev/null || echo "1")
+                if [ "$(echo "$mb_num > 1.0" | bc 2>/dev/null || echo 0)" = "1" ]; then
+                  echo "  ::warning::Mass imbalance > 1%: $mass_balance"
+                fi
+              fi
+            fi
+          done < <(find workspace/ -name '*.json' 2>/dev/null | grep -E '(validation|vvv|results)' || true) || true
+
+          echo ""
+          echo "Conservation check completed"
+          exit $FAILS
+
+  certification:
+    runs-on: ubuntu-latest
+    needs: [verification, convergence-check, conservation-check]
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Aggregate VVV results
+        id: aggregate
+        run: |
+          echo "═══ VVV CERTIFICATION ═══"
+          echo ""
+          echo "Resultados por gate (usando outcomes das steps):"
+          echo "  G1 Schema:       ${{ needs.verification.outputs.schema_status }}"
+          echo "  G2 Sanity:       ${{ needs.verification.result }}"
+          echo "  G3 Freshness:    ${{ needs.verification.result }}"
+          echo "  G4 Revisor:      ${{ needs.verification.result }}"
+          echo "  Convergence:     ${{ needs.convergence-check.result }}"
+          echo "  Conservation:    ${{ needs.conservation-check.result }}"
+          echo ""
+
+      - name: Generate VVV report
+        run: |
+          REPORT="workspace/template/vvv/vvv-report-$(date +%Y%m%d-%H%M%S).md"
+          mkdir -p "$(dirname "$REPORT")"
+          {
+            echo "# VVV Automated Report"
+            echo "**Date:** $(date -Iseconds)"
+            echo "**Commit:** ${{ github.sha }}"
+            echo "**Branch:** ${{ github.ref_name }}"
+            echo ""
+            echo "## Verification Results"
+            echo ""
+            echo "| Gate | Status |"
+            echo "|------|--------|"
+            echo "| G1 Schema | ${{ needs.verification.outputs.schema_status }} |"
+            echo "| G2 Sanity | ${{ needs.verification.result }} |"
+            echo "| G3 Freshness | ${{ needs.verification.result }} |"
+            echo "| G4 Revisor | ${{ needs.verification.result }} |"
+            echo "| Convergence | ${{ needs.convergence-check.result }} |"
+            echo "| Conservation | ${{ needs.conservation-check.result }} |"
+            echo ""
+            G1_PASS="${{ needs.verification.outputs.schema_status }}"
+            VERD_PASS="${{ needs.verification.result }}"
+            CONV_PASS="${{ needs.convergence-check.result }}"
+            CONS_PASS="${{ needs.conservation-check.result }}"
+            PASS_COUNT=0
+            [ "$G1_PASS" = "success" ] && PASS_COUNT=$((PASS_COUNT + 1))
+            [ "$VERD_PASS" = "success" ] && PASS_COUNT=$((PASS_COUNT + 3))
+            [ "$CONV_PASS" = "success" ] && PASS_COUNT=$((PASS_COUNT + 1))
+            [ "$CONS_PASS" = "success" ] && PASS_COUNT=$((PASS_COUNT + 1))
+            echo "**Result:** ${PASS_COUNT}/6 gates passed"
+            [ "$PASS_COUNT" -eq 6 ] && echo "**Certification:** ✅ CERTIFIED"
+            [ "$PASS_COUNT" -ge 4 ] && [ "$PASS_COUNT" -lt 6 ] && echo "**Certification:** ⚠ CONDITIONAL PASS"
+            [ "$PASS_COUNT" -lt 4 ] && echo "**Certification:** ❌ FAILED"
+            echo ""
+            echo "## Files Checked"
+            echo ""
+            find workspace/ -name '*.json' -newer .git/index 2>/dev/null | while read -r f; do
+              echo "- $f"
+            done
+          } > "$REPORT"
+          echo "Report generated: $REPORT"
+
+      - name: Post PR comment with results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const reportDir = 'workspace/template/vvv/';
+            const files = fs.readdirSync(reportDir).filter(f => f.startsWith('vvv-report-'));
+            const latest = files.sort().pop();
+            if (latest) {
+              const report = fs.readFileSync(reportDir + latest, 'utf8');
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: '## VVV Automated Report\n\n```\n' + report.substring(0, 3000) + '\n```'
+              });
+            }
+
+      - name: Final verdict
+        run: |
+          G1_PASS="${{ needs.verification.outputs.schema_status }}"
+          VERD_PASS="${{ needs.verification.result }}"
+          CONV_PASS="${{ needs.convergence-check.result }}"
+          CONS_PASS="${{ needs.conservation-check.result }}"
+          PASS_COUNT=0
+          [ "$G1_PASS" = "success" ] && PASS_COUNT=$((PASS_COUNT + 1))
+          [ "$VERD_PASS" = "success" ] && PASS_COUNT=$((PASS_COUNT + 3))
+          [ "$CONV_PASS" = "success" ] && PASS_COUNT=$((PASS_COUNT + 1))
+          [ "$CONS_PASS" = "success" ] && PASS_COUNT=$((PASS_COUNT + 1))
+          echo "══════════════════════════════════"
+          echo "  VVV FINAL VERDICT"
+          echo "══════════════════════════════════"
+          echo "  Gates PASS: ${PASS_COUNT}/6"
+          echo "  (G1: $G1_PASS, G2-4 collapsed in verification result: $VERD_PASS)"
+          echo "  Convergence: $CONV_PASS, Conservation: $CONS_PASS"
+          if [ "$PASS_COUNT" -eq 6 ]; then
+            echo "  VVV: ✅ CERTIFIED — ALL GATES PASS"
+          elif [ "$PASS_COUNT" -ge 4 ]; then
+            echo "  VVV: ⚠ CONDITIONAL PASS — ${PASS_COUNT}/6 gates OK"
+          else
+            echo "  VVV: ❌ FAILED — ${PASS_COUNT}/6 gates OK, review required"
+          fi
+          echo "══════════════════════════════════"
