@@ -1,0 +1,28 @@
+The data is in. Here's the full comparison.
+
+---
+
+## COMPARATIVO: PLANO ORIGINAL vs REESCRITO vs IMPLEMENTAÇÃO REAL
+
+### Correções de achados anteriores (dados aninhados)
+
+Os alarmes sobre motor-gerador-v1 eram falsos — os dados estão dentro de arrays aninhados (`entries`):
+
+| Claim do plano | Real | Status |
+|---|---|---|
+| lineage_db.json ≥28 entries | 29 entries no array `.entries` | ✅ PASS |
+| index.json 28+ entries | 29 entries no array `.entries` | ✅ PASS |
+| graph.json 29 nodes, 52 edges | 29 nodes, 52 edges | ✅ PASS |
+
+---
+
+### Comparação ORIGINAL vs REESCRITO vs REAL
+
+Avalio 12 dimensões-chave onde o plano reescrito (Plans/drifting-toasting-octopus.md) difere do original (skill args) e da implementação real:
+
+| # | Dimensão | ORIGINAL (skill args) | REESCRITO (plan file) | IMPLEMENTAÇÃO REAL | Veredito |
+|---|----------|----------------------|----------------------|-------------------|----------|
+| 1 | **Domínios ilimitados** | Seção 3 completa: processo de 6 passos, 13 famílias, template de domínio, prova NASA | Ausente — não menciona o processo de seleção, só "domínios ilimitados" como título | Template não implementa o processo; agent-factory.sh espera `relevance_check.md` que não existe | ⚠️ PARTIAL — conceito documentado na engine, não operacionalizado no template |
+| 2 | **Agentes especialistas** | Cada domínio confirmado → 1 agente. 20-30 para NASA | "7 confirmados + 2 parciais" para motor-gerador | motor-gerador-v1/team/ tem 7 agents (mecanica, eletrica, energia, materiais, normativo, economico, termo) — faltam fluidos, ambiente, construcao | ⚠️ PARTIAL — 7 de 10 domínios têm agentes |
+| 3 | **agent-eletricidade e agent-termo** | Essenciais para motor-gerador (PMSG 100kW) | Menciona liderança "eletricidade+termo" | Template/team/ **NÃO TEM** agent-eletricidade nem agent-termo (só agent-template/). motor-gerador-v1/team/ TEM agent-eletrica/ e agent-termo/ | ⚠️ PARTIAL — existem nos projetos, faltam no template |
+| 4 | **Context Engineering C1-C10** |

@@ -1,0 +1,19 @@
+{
+  "version": "2.6",
+  "current_phase": "INIT",
+  "current_task_id": null,
+  "fsm_state": "IDLE",
+  "human_approved_spec": false,
+  "human_approved_plan": false,
+  "tasks_completed": 0,
+  "total_tasks": 0,
+  "self_healing_attempts": 0,
+  "max_healing_attempts": 3,
+  "last_validation": null,
+  "definition_of_done": {
+    "exit_code_zero": true,
+    "tests_pass": true,
+    "diff_cirurgical": true,
+    "no_new_warnings": true
+  }
+}
