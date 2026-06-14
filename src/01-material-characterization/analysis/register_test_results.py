@@ -29,6 +29,7 @@ if _project_root not in sys.path:
 
 from src.common.database import database, DatabaseError
 from src.common.registry import create_object, get_object, ObjectNotFound
+from src.common.provenance import record_edge
 
 # ------------------------------------------------------------------
 # Test environment defaults (quickstart.md section 2.2)
@@ -146,6 +147,10 @@ def register_test_result(
             ),
         )
         db.commit()
+
+    # Provenance edge: specimen → test_result (transformation='mechanical_test')
+    record_edge(specimen_id, obj_id, "mechanical_test",
+                parameters={"test_standard": test_standard, "test_type": test_type})
 
     return obj_id
 
