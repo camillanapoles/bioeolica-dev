@@ -83,7 +83,11 @@ class PeridynamicsModel:
             K[0, 0] = 1e15
         F[-1] = load_right_N
 
-        self.displacements = np.linalg.solve(K, F)
+        try:
+            self.displacements = np.linalg.solve(K, F)
+        except np.linalg.LinAlgError:
+            # Fallback to least-squares if singular
+            self.displacements, _, _, _ = np.linalg.lstsq(K, F, rcond=None)
 
         for bond in self.bonds:
             i, j, dist0 = int(bond[0]), int(bond[1]), bond[2]
