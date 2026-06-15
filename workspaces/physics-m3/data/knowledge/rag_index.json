@@ -1,8 +1,8 @@
 {
-  "updated_at": "2026-06-15T13:38:22.820271+00:00",
+  "updated_at": "2026-06-15T17:32:07.856897+00:00",
   "sources": {
-    "SRC-87318f69": {
-      "source_id": "SRC-87318f69",
+    "SRC-4c916623": {
+      "source_id": "SRC-4c916623",
       "title": "Mechanical properties of recycled paper fiber composites",
       "source_type": "article",
       "authors": [
@@ -26,10 +26,10 @@
         "material:waste_paper"
       ],
       "notes": "",
-      "created_at": "2026-06-15T13:38:20.294989+00:00"
+      "created_at": "2026-06-15T17:32:05.462820+00:00"
     },
-    "SRC-5a6ded84": {
-      "source_id": "SRC-5a6ded84",
+    "SRC-06590b37": {
+      "source_id": "SRC-06590b37",
       "title": "PVA-based binders for sustainable composites",
       "source_type": "article",
       "authors": [
@@ -53,10 +53,10 @@
         "material:pva"
       ],
       "notes": "",
-      "created_at": "2026-06-15T13:38:20.295005+00:00"
+      "created_at": "2026-06-15T17:32:05.462839+00:00"
     },
-    "SRC-5c4bb800": {
-      "source_id": "SRC-5c4bb800",
+    "SRC-0428f08e": {
+      "source_id": "SRC-0428f08e",
       "title": "Graphite coatings for wind turbine blade protection",
       "source_type": "article",
       "authors": [
@@ -80,10 +80,10 @@
         "material:graphite_coating"
       ],
       "notes": "",
-      "created_at": "2026-06-15T13:38:20.295011+00:00"
+      "created_at": "2026-06-15T17:32:05.462845+00:00"
     },
-    "SRC-f07c884a": {
-      "source_id": "SRC-f07c884a",
+    "SRC-80cc97e0": {
+      "source_id": "SRC-80cc97e0",
       "title": "New",
       "source_type": "article",
       "authors": [],
@@ -95,7 +95,7 @@
       "domains": [],
       "tags": [],
       "notes": "",
-      "created_at": "2026-06-15T13:38:22.820060+00:00"
+      "created_at": "2026-06-15T17:32:07.856753+00:00"
     }
   }
 }

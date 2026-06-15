@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "physics-m3-workspace"
-version = "1.1.0"
+version = "1.2.0"
 description = "Computational Mechanics Workspace for Multi-Scale (M³) Analysis"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -24,18 +24,28 @@ dependencies = [
     "scipy>=1.10",
     "matplotlib>=3.7",
     "pytest>=7.0",
+    "scikit-image>=0.20",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest-cov>=4", "pytest-xdist>=3", "ruff>=0.1", "black>=23"]
+dev = [
+    "pytest-cov>=4",
+    "pytest-xdist>=3",
+    "ruff>=0.1",
+    "black>=23",
+    "pandas>=1.5",
+]
 docs = ["sphinx>=7", "sphinx-rtd-theme>=1"]
+
+[project.scripts]
+physics-m3 = "modules.__main__:main"
 
 [project.urls]
 Repository = "https://github.com/bioeolica/physics-m3-workspace"
 Documentation = "https://physics-m3.readthedocs.io"
 
 [tool.setuptools.packages.find]
-include = ["modules*"]
+include = ["modules*", "physics_m3*"]
 namespaces = false
 
 [tool.pytest.ini_options]

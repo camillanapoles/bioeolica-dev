@@ -117,10 +117,11 @@ class TestCalibrateModel:
         """Calibrate with bounds → params stay within bounds."""
         x = np.array([0.0, 1.0, 2.0, 3.0, 4.0])
         y = 5.0 * x + 3.0
-        bounds = [(0.0, 10.0), (0.0, 10.0)]
+        bounds = ([0.0, 0.0], [10.0, 10.0])  # scipy format: ([lower], [upper])
         result = calibrate_model(_linear, x, y, initial_params=[0.0, 0.0], bounds=bounds)
-        assert bounds[0][0] <= result["params"][0] <= bounds[0][1]
-        assert bounds[1][0] <= result["params"][1] <= bounds[1][1]
+        # bounds = ([lower1, lower2], [upper1, upper2])
+        for pi, lo, hi in zip(result["params"], bounds[0], bounds[1]):
+            assert lo <= pi <= hi, f"param {pi} out of bounds [{lo}, {hi}]"
 
     def test_quadratic_model(self):
         """Calibrate quadratic y = 3x² + 0x + 1 → params [3, 0, 1]."""
