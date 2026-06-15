@@ -67,6 +67,8 @@ class PeridynamicsModel:
                 k_bond = c * self.volumes[i] * self.volumes[j] / dist**2
                 K[i, i] += k_bond
                 K[i, j] -= k_bond
+                K[j, i] -= k_bond
+                K[j, j] += k_bond
         return K
 
     def solve(self, fixed_left: bool = True, load_right_N: float = 1000,

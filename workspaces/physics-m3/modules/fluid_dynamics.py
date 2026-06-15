@@ -99,11 +99,11 @@ class Airfoil:
         cl_linear = 2 * np.pi * alpha
 
         # Stall model: Cl drops beyond stall angle
-        alpha_stall = np.radians(
-            10 + 5 * np.sqrt(self.thickness_ratio / 0.12)  # thickness effect
-        )
-        if abs(alpha_deg) > alpha_stall:
-            cl = cl_linear * np.exp(-3 * (abs(alpha_deg) - np.degrees(alpha_stall)) / 10)
+        alpha_stall_deg = 10 + 5 * np.sqrt(self.thickness_ratio / 0.12)  # thickness effect
+        alpha_stall = np.radians(alpha_stall_deg)
+        if abs(alpha_deg) > alpha_stall_deg:
+            # Post-stall: exponential lift reduction
+            cl = cl_linear * np.exp(-3 * (abs(alpha_deg) - alpha_stall_deg) / 10)
         else:
             cl = cl_linear
 
