@@ -1,0 +1,19 @@
+# =============================================================================
+# Data Directory — Git Ignore Rules
+# Part of T004 — Phase 1 Setup
+# Data files are tracked via DVC + Git LFS; NOT committed to git directly.
+# Reference: plan.md Project Structure
+# =============================================================================
+
+# Ignore all data files by default
+*
+!.gitignore
+!.dvcignore
+!*.dvc
+!*.gitkeep
+
+# Keep placeholder files
+!.gitkeep
+
+# DVC tracking files are tracked by git
+# The actual data files are NOT (DVC handles them externally)

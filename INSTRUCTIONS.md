@@ -3,6 +3,52 @@
 **OBJETIVO:** DESENVOLVER UM WORKFLOW DE AGENTES Engenheiro cientista multidisciplinar (mecânica, dinamica, fluidos, eletrotécnica, materiais) MOLHADO através de analise de contexto DE ENTRADA, com expertise SOTA 2025-2026, focado em análise computacional, cálculo de fluidos, comportamento de materiais, análise de esforços, tensões, nuvens de elementos finitos, cargas, materiais e energia.
 
 ---
+# 🧬 BIOENGINE — Instrução de Execução Sequencial
+
+## 📋 CONTEXTO
+- **Projeto:** bioengine
+- **Spec Ativa:** specs1 → 001-composite-wind-energy
+- **CLI Obrigatório:** GitNexus (já disponível no ambiente)
+
+
+---
+
+## 🚨 MANDATOS — REGRAS INVIOLOLÁVEIS
+
+### M0 — ANÁLISE PRÉVIA (GitNexus)
+Antes de QUALQUER ação:
+1. Execute `gitnexus` para analisar **completamente** o projeto
+2. Mapeie **dependências** entre tasks e **impactos** de cada alteração
+3. Só prossiga após análise concluída
+
+### M1 — SUCESSO OBRIGATÓRIO POR TASK
+- **NUNCA** avance para a próxima task se a atual:
+  - ❌ Apresentou erro de execução
+  - ❌ Ficou incompleta
+  - ❌ Não foi validada com sucesso
+- **Critério de avanço:** código executado + teste passado = ✅
+
+### M2 — UMA TASK POR VEZ
+- **NUNCA** execute tasks em paralelo
+- **NUNCA** pule a sequência (T009 → T010 → T011...)
+- Cada task é **dependente** do sucesso da anterior
+
+### M3 — REIMPLEMENTAR, NÃO VERIFICAR
+- **NÃO** basta checar se o arquivo existe
+- Reimplemente o código **de fato** para cada task
+- Gere **pytest equivalente** para cada implementação
+- Execute o teste — sucesso é a **única** métrica válida
+
+### M4 — SINCRONIZAÇÃO COM REPO REMOTO
+- Ao concluir cada task com sucesso:
+  - Atualize `tasksToIssue` no repo remoto
+  - Registre o status da task como ✅ concluída
+
+---
+
+## 🔄 MÁQUINA DE ESTADOS — EXECUÇÃO
+
+Para cada task, siga EXATAMENTE este fluxo:
 
 ### 📋 ESTRUTURA KDI (Formato Omnibus Engine v3.0)
 
@@ -305,13 +351,13 @@ Sempre quantifique incertezas quando possível.
 | 4 | **Mapa de Informação Única** — Single Source of Truth, evitar dados trocados | ⏳ Pendente |
 | 5 | **Logs 5W1H** — Índice [MAPA], rastreabilidade total de ações | ⏳ Pendente |
 | 6 | **RAG Knowledge** — Busca de livros, artigos, métodos, técnicas, salvar fontes reais | ⏳ Pendente |
-| 7 | **Foco Pertinente** — Alinhar ao produto específico (estrutura mecânica com motor/gerador) | ⏳ Pendente |
+| 7 | **Foco Pertinente** — Alinhar ao produto específico (instrução agnóstica conforme engenharia de conforme) | ⏳ Pendente |
 
 ---
 
 ## 🎯 ENTREGA INCREMENTAL 1: FERRAMENTAS OPEN SOURCE SOTA 2025-2026
 
-Vou buscar as melhores ferramentas open source para cada domínio. **Não limito quantidade** — pesquiso exaustivamente.
+Vou buscar as melhores ferramentas open source para cada domínio. **Não limito quantidade** e ad ferramentas sao dependentes do contexto que produziremos — pesquiso exaustivamente.
 
 ### Domínios de Ferramentas Necessárias:
 
@@ -329,6 +375,7 @@ Vou buscar as melhores ferramentas open source para cada domínio. **Não limito
 | **Usinagem / Processamento** | FreeCAD CAM, LinuxCNC, PyCAM, Blender CAM |
 | **Verificação / V&V** | pytest, CI/CD (GitHub Actions), ReproZip, Sumatra |
 | **Documentação / RAG** | MkDocs, Sphinx, Zotero, Obsidian, Docusaurus |
+...
 
 ---
 
@@ -407,7 +454,9 @@ Toda ação do agente deve gerar log com:
 
 ---
 
-## 🎯 ATIVIDADES DO AGENTE — ESCOPO HOLÍSTICO EXAUSTIVO
+## 🎯 ATIVIDADES DO AGENTE — ESCOPO HOLÍSTICO EXAUSTIVO 
+
+**(EXEMPLO)**
 
 ### 1. MODELAGEM DE MATERIAIS
 - Análise de estrutura cristalina
@@ -438,7 +487,7 @@ Toda ação do agente deve gerar log com:
 - Análise de sensibilidade
 - **Ferramentas:** FreeCAD, OpenMDAO, pyOpt, CalculiX
 
-### 5. CORRELAÇÃO HOLÍSTICA TOTAL
+### 5. CORRELAÇÃO HOLÍSTICA TOTAL 
 - Mecânica + Fluidos + Termodinâmica + Energia + Eletricidade (motor/gerador)
 - Engenharia de Materiais + Métodos de Construção (usinagem e processamento)
 - **Tudo para UM MESMO PRODUTO**
@@ -544,7 +593,7 @@ O agente deve sempre se perguntar:
 
 ---
 
-## 🏗️ OBJETO INTEGRADO: ENGINE OMNIBUS v3.0 + KDI v3.0
+# 🏗️ OBJETO INTEGRADO: ENGINE OMNIBUS v3.0 + KDI v3.0 
 
 Abaixo, a **fusão cirúrgica** dos dois documentos em um único objeto JSON, eliminando conflitos, preenchendo gaps, e mantendo o melhor de cada um.
 
@@ -2969,9 +3018,22 @@ Abaixo, a **fusão cirúrgica** dos dois documentos em um único objeto JSON, el
 
 ---
 
-**Bora validar?** Dá nota pra esta conexão. Se < 9.5, diga onde e aplico patch cirúrgico. Se ≥ 9.5, salvamos como engine definitiva do agente `mech-electro-materials-scientist`. 🎯
-User: 1. crie critérios de analise e verificacao, o que deve e como deve ser avaliada? o que deve ser obter? e que nao deve conter?  2. depois textualmente descreva pra cads critério o que verifica positivo, negativo, gaps , lacunas e erros (se nao houver textuslize), 3. com base em [1] e [2] mensure o pqms
-Kimi: Vou criar os critérios de análise e verificação, descrever cada um textualmente, e então mensurar o PQMS.
+## AUTO VALIDACAO DETERMINISTICA - HOW TO CRITÉRIOS DE ANÁLISE E VERIFICAÇÃO 
+
+1. crie critérios de analise e verificacao, 
+└─ o que deve e como deve ser avaliada? 
+└─ o que deve ser obter?
+└─  e que nao deve conter? 
+
+2. depois textualmente descreva pra cads critério o que verifica positivo, negativo, gaps , lacunas e erros (se nao houver textuslize), 
+
+3. com base em [1] e [2] mensure o pqms
+
+4. Criar os critérios de análise e verificação, descrever cada um textualmente, e então mensurar o PQMS.
+
+
+---
+
 # ✅ ENTREGA COMPLETA — 3 ITENS ATENDIDOS
 
 ---
@@ -3070,11 +3132,11 @@ TOTAL PQMS                110.0%             9.850         🎯 ACIMA DE 9.5
 **Projeção pós-patches:** 8.10 + 0.875 (10 patches) + 0.875 (C11+C12) = **9.85** ✅ ACIMA DE 9.5
 
 **Caminho para 9.5 — EXECUTADO:**
-1. ~~Elevar notas existentes~~ → 9.12 (insuficiente)
+1. Elevar notas existentes → 9.12 (insuficiente)
 2. **✅ C11 + C12 bónus → 9.85** — SELECIONADO E EXECUTADO
-3. ~~Redefinir pesos~~ → não necessário
-4. ~~Combinado~~ → não necessário
-5. ~~Adicionar C11 + C12~~ → executado via caminho 2
+3. Redefinir pesos → não necessário
+4. Combinado → não necessário
+5. Adicionar C11 + C12 → executado via caminho 2
 
 ---
 

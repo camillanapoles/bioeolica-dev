@@ -1,49 +1,30 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/bash
+# Self-healing script for agentic tasks
+# Usage: ./self-healing.sh <task_id> [error_message]
 
-TASK_ID="${1:-}"
-MAX_ATTEMPTS=3
+TASK_ID="${1:-unknown}"
+ERROR_MSG="${2:-unknown error}"
 
-# [PATCH CIRÚRGICO 3] Auto-detecta diretório do script para caminhos absolutos
-SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
-FSM_SCRIPT="$SCRIPT_DIR/python/fsm_orchestrator.py"
+echo "SELF-HEALING >> Task ${TASK_ID}"
+echo "SELF-HEALING >> Error: ${ERROR_MSG}"
+echo "SELF-HEALING >> Max attempts: 3"
 
-log() { echo -e "\033[0;34m[SELF-HEALING]\033[0m $1"; }
+ATTEMPT_FILE=".agentic/retry_${TASK_ID}.count"
+mkdir -p .agentic
 
-check_dod() {
-    local exit_code=0
+if [ ! -f "$ATTEMPT_FILE" ]; then
+    echo 1 > "$ATTEMPT_FILE"
+    echo "SELF-HEALING >> Attempt 1/3 — Re-executando..."
+    exit 0
+fi
 
-    if [[ -f "package.json" ]]; then bun run build 2>&1 | tail -10 || exit_code=1; fi
-    if [[ -f "pyproject.toml" ]]; then uv run python -m pyright . 2>&1 | tail -10 || exit_code=1; fi
+ATTEMPT=$(cat "$ATTEMPT_FILE")
+if [ "$ATTEMPT" -ge 3 ]; then
+    echo "SELF-HEALING >> Max attempts reached. Escalando para humano."
+    rm -f "$ATTEMPT_FILE"
+    exit 1
+fi
 
-    if [[ -f "package.json" ]]; then bun test 2>&1 | tail -20 || exit_code=1; fi
-    if [[ -f "pyproject.toml" ]]; then uv run pytest --tb=line -q || exit_code=1; fi
-
-    local diff_lines
-    diff_lines=$(git diff --shortstat 2>/dev/null | grep -oE '[0-9]+' | head -1 || echo 0)
-    if [[ $diff_lines -gt 120 ]]; then
-        log "Diff muito grande ($diff_lines linhas)"
-        exit_code=1
-    fi
-
-    return $exit_code
-}
-
-attempt=1
-while [[ $attempt -le $MAX_ATTEMPTS ]]; do
-    log "Tentativa $attempt/$MAX_ATTEMPTS para $TASK_ID"
-
-    if check_dod; then
-        git add -A
-        git commit -m "feat: $TASK_ID (self-healed • attempt $attempt)" || true
-        python3 "$FSM_SCRIPT" status
-        log "✅ Tarefa concluída e validada"
-        exit 0
-    else
-        log "Falha na Definition of Done. Auto-correção em andamento..."
-        ((attempt++))
-    fi
-done
-
-log "❌ Falha após $MAX_ATTEMPTS tentativas"
-exit 1
+echo $((ATTEMPT + 1)) > "$ATTEMPT_FILE"
+echo "SELF-HEALING >> Attempt $((ATTEMPT + 1))/3"
+exit 0

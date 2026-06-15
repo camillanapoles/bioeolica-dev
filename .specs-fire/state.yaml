@@ -1,0 +1,50 @@
+# FIRE State — Auto-gerenciado pelo Orchestrator
+project:
+  name: bioeolica-dev
+  description: "Plataforma de Engenharia Multi-Agente — Composite Wind Energy"
+  created: "2026-06-14T13:00:00Z"
+  fire_version: "0.1.8"
+
+workspace:
+  type: brownfield
+  structure: monolith
+  autonomy_bias: balanced
+  run_scope_preference: single
+  run_scope_history: []
+  scanned_at: "2026-06-14T14:00:00Z"
+
+intents:
+  - id: physics-workspace-m3
+    title: "Physics Workspace M³ — Computational Mechanics for Composite Materials"
+    status: in_progress
+    work_items:
+      - id: lab1-materials-m3
+        title: "Lab 1 — Material Characterization with M³ Analysis"
+        status: completed
+        complexity: high
+        mode: validate
+      - id: lab2-structural-design
+        title: "Lab 2 — Structural Design & Multi-Physics Analysis"
+        status: completed
+        complexity: high
+        mode: validate
+      - id: lab0-cad-visualization
+        title: "Lab 0 — CAD & Visualization Workspace"
+        status: completed
+        complexity: medium
+        mode: confirm
+
+runs:
+  active: []
+  completed:
+    - id: run-physics-m3
+      intent: physics-workspace-m3
+      work_items:
+        - lab0-cad-visualization
+        - lab1-materials-m3
+        - lab2-structural-design
+      phase: execute
+      status: completed
+      created: "2026-06-14T18:30:00Z"
+      completed: "2026-06-14T19:30:00Z"
+      walkthrough: "workspaces/physics-m3/notebooks/lab1_material_characterization.ipynb"
