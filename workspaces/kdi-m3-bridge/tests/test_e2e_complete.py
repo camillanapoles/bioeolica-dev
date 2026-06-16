@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Test E2E Completo — valida toda a cadeia de valor do sistema.
 
 Cobre: Material → CAD → Macro → Meso → Micro → Falha → Testes Mecânicos → KDI
