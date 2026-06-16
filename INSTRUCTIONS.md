@@ -346,12 +346,12 @@ Sempre quantifique incertezas quando possível.
 | # | Mandato | Status |
 |---|---------|--------|
 | 1 | **Open Source First** — Pesquisar e mapear ferramentas open source SOTA 2025-2026 | 🔄 Em análise |
-| 2 | **Seleção & Integração** — Ferramentas alinhadas ao objetivo do produto | ⏳ Pendente |
-| 3 | **VVV** — Validação, Verificação, Validada em toda ação | ⏳ Pendente |
-| 4 | **Mapa de Informação Única** — Single Source of Truth, evitar dados trocados | ⏳ Pendente |
-| 5 | **Logs 5W1H** — Índice [MAPA], rastreabilidade total de ações | ⏳ Pendente |
-| 6 | **RAG Knowledge** — Busca de livros, artigos, métodos, técnicas, salvar fontes reais | ⏳ Pendente |
-| 7 | **Foco Pertinente** — Alinhar ao produto específico (instrução agnóstica conforme engenharia de conforme) | ⏳ Pendente |
+| 2 | **Seleção & Integração** — Ferramentas alinhadas ao objetivo do produto | ✅ Concluído |
+| 3 | **VVV** — Validação, Verificação, Validada em toda ação | ✅ E2E 10/10 + 811 testes |
+| 4 | **Mapa de Informação Única** — Single Source of Truth, evitar dados trocados | ✅ Concluído |
+| 5 | **Logs 5W1H** — Índice [MAPA], rastreabilidade total de ações | ✅ WAL em docs/logs/ |
+| 6 | **RAG Knowledge** — Busca de livros, artigos, métodos, técnicas, salvar fontes reais | ✅ Concluído |
+| 7 | **Foco Pertinente** — Alinhar ao produto específico | ✅ KDI M³ integrado |
 
 ---
 
