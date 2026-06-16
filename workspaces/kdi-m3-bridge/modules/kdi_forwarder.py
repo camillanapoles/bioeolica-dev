@@ -15,7 +15,6 @@ _WS = os.path.abspath(os.path.join(_THIS, ".."))
 _PROJ = os.path.abspath(os.path.join(_WS, ".."))
 
 sys.path.insert(0, _WS)
-from modules.config_manager import ConfigManager
 
 
 def _import_by_path(rel_path: str, name: str = ""):
@@ -29,6 +28,12 @@ def _import_by_path(rel_path: str, name: str = ""):
     return mod
 
 
+def _get_config():
+    """Lazy-load ConfigManager via importlib to avoid namespace conflicts."""
+    cm = _import_by_path("kdi-m3-bridge/modules/config_manager.py", "config_manager")
+    return cm.ConfigManager
+
+
 _CAD_BRIDGE = _import_by_path("cad-cae-platform/modules/cad_bridge.py", "cad_bridge")
 _KDI_MACRO = _import_by_path("kdi-m3-bridge/modules/kdi_macro.py", "kdi_macro")
 _KDI_MESO = _import_by_path("kdi-m3-bridge/modules/kdi_meso.py", "kdi_meso")
@@ -39,7 +44,8 @@ class KDIForwarder:
     """Orchestrates M³ analyses from config.json."""
 
     def __init__(self, config_path: str = ""):
-        self.cfg = ConfigManager.load(config_path or os.path.join(_WS, "config.json"))
+        CM = _get_config()
+        self.cfg = CM.load(config_path or os.path.join(_WS, "config.json"))
         self._results: dict[str, Any] = {}
 
     def run_macro(self) -> dict:
