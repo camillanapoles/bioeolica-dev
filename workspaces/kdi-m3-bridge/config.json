@@ -1,0 +1,57 @@
+{
+  "project": {
+    "name": "default",
+    "description": "Default KDI-M³ analysis scenario",
+    "version": "1.0.0"
+  },
+  "environment": {
+    "altitude_m": 100,
+    "wind_class": "II",
+    "wind_speed_ref_ms": 30.0,
+    "exposure": "rural",
+    "safety_class": "CC2"
+  },
+  "geometry": {
+    "type": "box",
+    "length_mm": 100,
+    "width_mm": 20,
+    "height_mm": 20
+  },
+  "mesh": {
+    "element_size": 3.0,
+    "element_order": 1,
+    "reorder": 1
+  },
+  "material": {
+    "name": "STEEL",
+    "E_GPa": 210,
+    "nu": 0.3,
+    "rho_kgm3": 7850,
+    "yield_strength_MPa": 250,
+    "fiber": "waste_paper",
+    "matrix": "pva",
+    "coating": "graphite_coating",
+    "V_f": 0.15
+  },
+  "solver": {
+    "type": "static",
+    "force_N": {"x": 0, "y": 0, "z": -100},
+    "fixed_nodes": [1, 2, 3, 4, 5],
+    "max_iterations": 100
+  },
+  "kdi": {
+    "macro": {"enabled": true},
+    "meso": {"enabled": true},
+    "micro": {"enabled": false}
+  },
+  "design_optimization": {
+    "n_levels": 3,
+    "objectives": ["mass", "stress"],
+    "maximize": [false, false]
+  },
+  "output": {
+    "format": "json",
+    "export_vtk": false,
+    "report_level": "detailed"
+  }
+}

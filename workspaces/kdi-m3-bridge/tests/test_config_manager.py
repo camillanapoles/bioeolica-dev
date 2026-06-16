@@ -10,9 +10,11 @@ class TestInit:
         cfg = ConfigManager.from_defaults()
         assert cfg.get("environment.altitude_m") == 100
 
-    def test_load_nonexistent_raises(self):
-        with pytest.raises(FileNotFoundError):
-            ConfigManager.load("/tmp/nonexistent_config_xyz.json")
+    def test_load_nonexistent_uses_defaults(self):
+        """Loading a nonexistent path returns module defaults (graceful fallback)."""
+        cfg = ConfigManager.load("/tmp/nonexistent_config_xyz_123456789.json")
+        assert cfg is not None
+        assert cfg.get("material.E_GPa", 0) == 210
 
     def test_create_default(self):
         from modules.config_manager import create_default_config
