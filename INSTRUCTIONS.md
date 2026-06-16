@@ -345,7 +345,7 @@ Sempre quantifique incertezas quando possível.
 
 | # | Mandato | Status |
 |---|---------|--------|
-| 1 | **Open Source First** — Pesquisar e mapear ferramentas open source SOTA 2025-2026 | 🔄 Em análise |
+| 1 | **Open Source First** — Pesquisar e mapear ferramentas open source SOTA 2025-2026 | ✅ CadQuery, Gmsh, CalculiX, CuPy, VTK, scipy, numpy |
 | 2 | **Seleção & Integração** — Ferramentas alinhadas ao objetivo do produto | ✅ Concluído |
 | 3 | **VVV** — Validação, Verificação, Validada em toda ação | ✅ E2E 10/10 + 811 testes |
 | 4 | **Mapa de Informação Única** — Single Source of Truth, evitar dados trocados | ✅ Concluído |
