@@ -3,7 +3,57 @@ name = "bioeolica-dev"
 version = "0.1.0"
 description = "Bioeolica multi-workspace simulation platform"
 requires-python = ">=3.11"
+dependencies = [
+    "numpy>=1.24",
+    "scipy>=1.10",
+    "matplotlib>=3.7",
+    "pandas>=2.0",
+    "sqlalchemy>=2.0",
+    "cadquery>=2.6",
+    "gmsh>=4.12",
+    "jinja2>=3.1",
+    "fastapi>=0.100",
+    "uvicorn>=0.22",
+    "streamlit>=1.25",
+    "httpx>=0.24",
+    "pydantic>=2.0",
+    "pyyaml>=6.0",
+    "tomli>=2.0",
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "pytest-xdist>=3.3",
+    "ruff>=0.1",
+    "mypy>=1.6",
+    "black>=23.0",
+    "coverage>=7.3",
+]
+test = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "pytest-xdist>=3.3",
+]
+doc = [
+    "mkdocs>=1.5",
+    "mkdocs-material>=9.4",
+]
+
+[project.scripts]
+migrate-unify-db = "scripts.migrate_unify_db:main"
+audit-deps = "scripts.audit_deps:main"
 
 [build-system]
 requires = ["setuptools>=68.0"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["src/*", "cad/*", "scripts/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --tb=short --no-header -p no:xdist"
