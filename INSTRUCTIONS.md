@@ -7,7 +7,6 @@
 
 ## 📋 CONTEXTO
 - **Projeto:** bioengine
-- **Spec Ativa:** specs1 → 001-composite-wind-energy
 - **CLI Obrigatório:** GitNexus (já disponível no ambiente)
 
 

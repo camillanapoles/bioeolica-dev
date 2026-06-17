@@ -1,0 +1,6 @@
+{
+  "layers": [
+    {"materials": [{"E_GPa": 200, "fraction": 1.0, "density": 7800, "nu": 0.3}], "binder": null, "thickness_mm": 8.0, "process": null},
+    {"materials": [{"E_GPa": 70, "fraction": 1.0, "density": 2700, "nu": 0.33}], "binder": null, "thickness_mm": 12.0, "process": null}
+  ]
+}

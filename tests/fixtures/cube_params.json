@@ -1,0 +1,11 @@
+{
+  "model_id": "CUBE-001",
+  "name": "Test Cube 100x50x20",
+  "machine_type": "generic",
+  "width": 100.0,
+  "height": 50.0,
+  "depth": 20.0,
+  "material": "steel",
+  "power_kw": 0,
+  "layers": []
+}

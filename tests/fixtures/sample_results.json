@@ -1,0 +1,37 @@
+{
+  "analysis_id": "ANL-001",
+  "title": "Topology Optimization — Cantilever Beam",
+  "date": "2026-06-17T12:00:00Z",
+  "domain": "Structural",
+  "sections": {
+    "context": {
+      "content": "Cantilever beam discretized with 80×40 quadrilateral elements. Unit point load applied at tip. SIMP penalization power p=3.0, target volume fraction 0.3. SLSQP optimizer, max 200 iterations, convergence tolerance 1e-4.",
+      "priority": 1
+    },
+    "results": {
+      "content": "Optimization completed in 47 iterations. Compliance converged to 42.3 N·mm. Final volume fraction 0.301 (within 0.33% of target). Two primary load paths identified.",
+      "priority": 2,
+      "metrics": {
+        "compliance": { "value": 42.3, "uncertainty": 2.1 },
+        "volume_fraction": { "value": 0.301, "uncertainty": 0.005 },
+        "iterations": { "value": 47, "uncertainty": 0 },
+        "max_displacement": { "value": 5.24, "uncertainty": 0.31 }
+      }
+    },
+    "synthesis": {
+      "content": "Optimal topology transfers load from tip to root through two primary load paths forming a truss-like structure. Material concentrates along tension-compression members with 0.3 volume fraction. Design is 70% lighter than solid baseline with controlled compliance penalty.",
+      "priority": 3
+    },
+    "limitations": {
+      "content": "1. Linear elastic analysis only — no plasticity or geometric nonlinearity\n2. Manufacturing constraints not applied (overhang, minimum member size)\n3. Mesh convergence study incomplete (coarse 5k elements only)\n4. Single load case — multi-load case topology may differ\n5. Isotropic material assumption — orthotropic behavior not modeled",
+      "priority": 4
+    },
+    "recommendations": {
+      "content": "1. Validate with medium (15k) and fine (50k) mesh convergence study\n2. Apply manufacturing constraints for additive manufacturing (overhang angle < 45°)\n3. Run multi-load case optimization with 3 load scenarios\n4. Consider thermal loads for high-temperature application\n5. Fabricate prototype and validate with DIC strain measurement",
+      "priority": 5
+    }
+  },
+  "vvv_status": "PASS",
+  "uncertainty_interval": "95%",
+  "references": ["Sigmund, O. (2001). A 99 line topology optimization code. SMO, 21(2), 120-127.", "Andreassen, E. et al. (2011). Efficient topology optimization in MATLAB. SMO, 43(1), 1-16."]
+}
