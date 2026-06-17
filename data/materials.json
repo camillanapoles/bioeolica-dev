@@ -1,0 +1,11 @@
+{
+  "steel_silicon": {"E_GPa": 200, "nu": 0.3, "density": 7800, "sigma_y_MPa": 350, "cost_per_kg": 2.5},
+  "aluminum_6061": {"E_GPa": 70, "nu": 0.33, "density": 2700, "sigma_y_MPa": 275, "cost_per_kg": 4.0},
+  "copper": {"E_GPa": 110, "nu": 0.34, "density": 8960, "sigma_y_MPa": 70, "cost_per_kg": 8.0},
+  "steel_4340": {"E_GPa": 205, "nu": 0.29, "density": 7850, "sigma_y_MPa": 710, "cost_per_kg": 3.5},
+  "epoxy_resin": {"E_GPa": 3.5, "nu": 0.35, "density": 1200, "sigma_y_MPa": 50, "cost_per_kg": 12.0},
+  "paper": {"E_GPa": 6, "nu": 0.2, "density": 800, "sigma_y_MPa": 20, "cost_per_kg": 0.5},
+  "graphite": {"E_GPa": 10, "nu": 0.23, "density": 2250, "sigma_y_MPa": 30, "cost_per_kg": 15.0},
+  "ceramic_alumina": {"E_GPa": 300, "nu": 0.22, "density": 3950, "sigma_y_MPa": 400, "cost_per_kg": 25.0},
+  "ndfeb_n42": {"E_GPa": 160, "nu": 0.24, "density": 7400, "sigma_y_MPa": 80, "cost_per_kg": 50.0}
+}
