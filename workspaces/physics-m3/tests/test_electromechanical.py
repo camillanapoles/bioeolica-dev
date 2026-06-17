@@ -56,7 +56,7 @@ class TestPMSG:
     def test_summary_returns_dict(self):
         gen = PMSG()
         s = gen.summary()
-        assert isinstance(s, dict)
+        assert type(s) == dict
         assert s["type"] == "PMSG"
         assert s["power_rated_W"] == 3000
         assert s["efficiency_at_rated_pct"] > 80
@@ -86,7 +86,7 @@ class TestDCMachine:
     def test_power_dict(self):
         dc = DCMachine(voltage_V=24, current_A=5)
         pw = dc.power_W()
-        assert isinstance(pw, dict)
+        assert type(pw) == dict
         for key in ("electrical_W", "mechanical_W", "efficiency_pct",
                     "torque_Nm", "speed_rpm"):
             assert key in pw
@@ -133,7 +133,7 @@ class TestTransformerEfficiency:
 class TestPowerConversionChain:
     def test_returns_dict(self):
         res = power_conversion_chain(DC_power_W=1000)
-        assert isinstance(res, dict)
+        assert type(res) == dict
         for key in ("inverter_efficiency_pct", "transformer_efficiency_pct",
                     "total_efficiency_pct", "loss_W"):
             assert key in res
@@ -173,6 +173,6 @@ class TestBatteryStorage:
     def test_summary_dict(self):
         b = BatteryStorage()
         s = b.summary()
-        assert isinstance(s, dict)
+        assert type(s) == dict
         assert s["type"] == "LiFePO4"
         assert s["capacity_Wh"] == 2000.0

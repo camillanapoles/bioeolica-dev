@@ -96,7 +96,7 @@ class TestCarnotEfficiency:
 class TestRankineCycle:
     def test_basic(self):
         res = rankine_cycle_efficiency(p_high_MPa=5, p_low_MPa=0.01)
-        assert isinstance(res, dict)
+        assert type(res) == dict and len(res) > 0
         assert res["rankine_efficiency_pct"] > 0
         assert res["carnot_efficiency_pct"] > 0
 

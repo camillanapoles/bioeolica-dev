@@ -70,7 +70,7 @@ class TestAnomaly:
             v = 10.0 if i == 12 else np.random.normal(0, 1)
             ad.add(v)
         anom = ad.anomalies()
-        assert isinstance(anom, list)
+        assert type(anom) == list and len(anom) > 0
 
 
 class TestDegradation:

@@ -25,9 +25,9 @@ def test_astm_d790_pass():
     )
     assert result["overall"] == "PASS", f"Expected PASS, got {result['overall']}"
     checks = result["checks"]
-    assert checks["span_to_thickness_ratio"]["passed"] is True
-    assert checks["flexural_modulus"]["passed"] is True
-    assert checks["flexural_strength"]["passed"] is True
+    assert checks["span_to_thickness_ratio"]["passed"] == True
+    assert checks["flexural_modulus"]["passed"] == True
+    assert checks["flexural_strength"]["passed"] == True
 
 
 def test_astm_d790_fail():
@@ -49,8 +49,8 @@ def test_astm_d3039_pass():
         elongation_pct=1.2, width_mm=25, thickness_mm=5,
     )
     assert result["overall"] == "PASS"
-    assert result["checks"]["tensile_modulus"]["passed"] is True
-    assert result["checks"]["tensile_strength"]["passed"] is True
+    assert result["checks"]["tensile_modulus"]["passed"] == True
+    assert result["checks"]["tensile_strength"]["passed"] == True
 
 
 def test_astm_d3039_elongation_fail():

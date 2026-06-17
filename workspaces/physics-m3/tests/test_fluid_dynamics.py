@@ -75,7 +75,7 @@ class TestFlowRegime:
 class TestBoundaryLayerThickness:
     def test_returns_dict_with_expected_keys(self):
         bl = boundary_layer_thickness(x_m=0.5, Re_x=1e5)
-        assert isinstance(bl, dict)
+        assert type(bl) == dict
         for key in ("laminar_delta_mm", "turbulent_delta_mm",
                     "displacement_thickness_mm", "momentum_thickness_mm"):
             assert key in bl
@@ -127,7 +127,7 @@ class TestAirfoil:
 class TestBEMTheory:
     def test_basic_bem(self):
         res = bem_theory(v_wind_ms=10, rpm=15, R_m=50)
-        assert isinstance(res, dict)
+        assert type(res) == dict
         assert res["TSR"] > 0
         assert res["power_W"] > 0
         assert res["thrust_N"] > 0
@@ -165,7 +165,7 @@ class TestWindPowerDensity:
 class TestTurbinePower:
     def test_turbine_power_dict(self):
         res = turbine_power(v_wind_ms=10, R_m=50, Cp=0.40)
-        assert isinstance(res, dict)
+        assert type(res) == dict
         assert res["power_W"] > 0
         assert res["rotor_area_m2"] > 0
 

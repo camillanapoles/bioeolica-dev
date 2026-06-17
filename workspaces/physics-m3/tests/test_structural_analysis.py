@@ -72,5 +72,5 @@ class TestSafety:
 class TestTsaiWu:
     def test_compression(self):
         r = tsai_wu_failure(100, 0, 0, Xt=200, Xc=150, Yt=50, Yc=100, S=70)
-        assert isinstance(r, dict)
+        assert type(r) == dict and len(r) > 0
         assert "failure_index" in r or "status" in r

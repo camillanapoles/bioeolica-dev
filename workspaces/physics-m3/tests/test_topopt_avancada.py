@@ -185,7 +185,7 @@ class TestSolve:
     def test_solve_returns_density_array(self, small_opt):
         """solve() returns an ndarray."""
         result = small_opt.solve(max_iter=10)
-        assert isinstance(result, np.ndarray)
+        assert type(result) == np.ndarray
 
     def test_solve_returns_correct_shape(self, small_opt):
         """solve() returns shape (nz, ny, nx)."""
@@ -210,7 +210,7 @@ class TestSolve:
     def test_convergence_flag_set(self, small_opt):
         """converged is True after solve with tight tolerance."""
         small_opt.solve(max_iter=200, tol=1e-3)
-        assert isinstance(small_opt.converged, bool)
+        assert type(small_opt.converged) == bool
 
 
 # ====================================================================
@@ -417,21 +417,21 @@ class TestConverged:
         """converged may be False if solve hasn't converged."""
         small_opt.solve(max_iter=3)
         # May not have converged in 3 iterations
-        assert isinstance(small_opt.converged, bool)
+        assert type(small_opt.converged) == bool
 
     def test_converged_true_after_many_iters(self):
         """converged is a bool after solve (may oscillate on small 3D)."""
         opt = TopOpt3D(nx=4, ny=4, nz=4, volfrac=0.4, rmin=1.2)
         opt.solve(max_iter=40, tol=1e-4)
-        assert isinstance(opt.converged, bool)
+        assert type(opt.converged) == bool
 
     def test_converged_stays_true(self):
         """converged is stable once set."""
         opt = TopOpt3D(nx=4, ny=4, nz=4, volfrac=0.4, rmin=1.2)
         opt.solve(max_iter=40, tol=1e-4)
-        assert isinstance(opt.converged, bool)
+        assert type(opt.converged) == bool
         opt.solve(max_iter=5)
-        assert isinstance(opt.converged, bool)
+        assert type(opt.converged) == bool
 
 
 # ====================================================================

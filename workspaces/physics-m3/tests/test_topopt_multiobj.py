@@ -35,7 +35,7 @@ class TestSolve:
     def test_solve_returns_density(self):
         opt = TopOptMultiObj(10, 6, volfrac=0.4)
         d = opt.solve(max_iter=5)
-        assert isinstance(d, np.ndarray)
+        assert type(d) == np.ndarray
         assert np.all(d >= 0) and np.all(d <= 1)
 
     def test_compliance_decreases(self):

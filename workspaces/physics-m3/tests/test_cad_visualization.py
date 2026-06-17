@@ -8,7 +8,7 @@ from modules.cad_visualization import (
 
 def test_airfoil(): a=AirfoilCoordinates(); c=a.coordinates(); assert len(c)==2
 def test_blade(): b=BladeGeometry(); assert b.length_m==1.5
-def test_color(): assert isinstance(stress_color_map(100,250), str)
+def test_color(): assert type(stress_color_map(100,250)) == str
 def test_stress():
     n=np.array([[0,0,0],[0,0.1,0],[0.1,0.1,0],[0.1,0,0],[0.2,0,0],[0.2,0.1,0]], dtype=float)
     s=np.ones(6); sf=StressField(nodes=n, stress_values=s); assert sf is not None

@@ -45,6 +45,7 @@ Repository = "https://github.com/bioeolica/physics-m3-workspace"
 Documentation = "https://physics-m3.readthedocs.io"
 
 [tool.setuptools.packages.find]
+where = [".", "src"]
 include = ["modules*", "physics_m3*"]
 namespaces = false
 

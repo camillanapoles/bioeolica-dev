@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install workspaces
+        run: |
+          pip install -e workspaces/physics-m3 -e workspaces/cad-cae-platform -e workspaces/kdi-m3-bridge
+          pip install pytest pytest-cov
+
+      - name: Quick tests (benchmarks + VVV)
+        run: |
+          cd workspaces/physics-m3 && python -m pytest tests/test_benchmarks/ tests/test_vvv_multiscale/ -v --tb=short
+
+      - name: Full physics-m3 suite
+        run: |
+          cd workspaces/physics-m3 && python -m pytest tests/ -v --tb=short -p no:xdist
+
+      - name: CAD-CAE platform tests
+        run: |
+          cd workspaces/cad-cae-platform && python -m pytest tests/ -v --tb=short -p no:xdist
+
+      - name: KDI bridge tests
+        run: |
+          cd workspaces/kdi-m3-bridge && python -m pytest tests/ -v --tb=short

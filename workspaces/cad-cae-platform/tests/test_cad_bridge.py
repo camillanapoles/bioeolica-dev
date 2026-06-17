@@ -6,7 +6,7 @@ import tempfile
 import numpy as np
 import pytest
 
-from modules.cad_bridge import (
+from cad_cae.cad_bridge import (
     CadModel,
     cantilever_beam,
     l_bracket,

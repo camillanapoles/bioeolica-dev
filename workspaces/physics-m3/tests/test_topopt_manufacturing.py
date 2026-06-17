@@ -99,6 +99,6 @@ class TestProperties:
     def test_support_volume(self):
         opt = TopOpt(nelx=10, nely=6, volfrac=0.4)
         m = TopOptManufacturing(opt)
-        assert isinstance(m.support_volume, float)
+        assert type(m.support_volume) == float
         m.step()
         assert m.support_volume >= 0

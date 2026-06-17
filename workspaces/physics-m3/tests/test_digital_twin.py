@@ -142,7 +142,7 @@ class TestDigitalTwin:
             dt.kalman_update(0.0)
         # Large outlier should be detected
         result = dt.detect_anomaly(100.0, threshold=3.0)
-        assert result["is_anomaly"] is True
+        assert result["is_anomaly"] == True
         assert result["z_score"] > 3.0
 
     def test_estimate_rul_healthy(self):

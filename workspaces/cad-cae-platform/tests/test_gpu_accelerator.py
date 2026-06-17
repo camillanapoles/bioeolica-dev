@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from modules.gpu_accelerator import GPUAccelerator, benchmark_comparison
+from cad_cae.gpu_accelerator import GPUAccelerator, benchmark_comparison
 
 
 def test_is_available():

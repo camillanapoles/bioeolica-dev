@@ -3,8 +3,8 @@
 import os, tempfile
 import pytest
 
-from modules.calculix_solver import FEMSolver
-from modules.gmsh_mesher import create_beam_mesh
+from cad_cae.calculix_solver import FEMSolver
+from cad_cae.gmsh_mesher import create_beam_mesh
 
 
 @pytest.fixture

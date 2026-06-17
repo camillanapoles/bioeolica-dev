@@ -82,13 +82,13 @@ Guias para Abstract, Introduction, Related Work, Method, Experiments, Conclusion
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at specs/001-physics-m3-workspace/plan.md
+at specs/007-quality-compliance-94pct/plan.md
 <!-- SPECKIT END -->
 
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **bioeolica-dev** (5186 symbols, 8770 relationships, 167 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **bioeolica-dev** (7109 symbols, 11513 relationships, 179 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > Index stale? Run `node .gitnexus/run.cjs analyze` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? `npx gitnexus analyze` (npm 11 crash → `npm i -g gitnexus`; #1939).
 

@@ -1,0 +1,9 @@
+[project]
+name = "bioeolica-dev"
+version = "0.1.0"
+description = "Bioeolica multi-workspace simulation platform"
+requires-python = ">=3.11"
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"

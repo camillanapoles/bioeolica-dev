@@ -3,7 +3,7 @@
 import os, tempfile
 import numpy as np
 import pytest
-from modules.gmsh_mesher import MeshGenerator, create_beam_mesh
+from cad_cae.gmsh_mesher import MeshGenerator, create_beam_mesh
 
 class TestBasic:
     def test_init(self):

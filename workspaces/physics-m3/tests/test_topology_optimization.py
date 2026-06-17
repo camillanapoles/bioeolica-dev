@@ -44,7 +44,7 @@ class TestTopOptImport:
     """Verify TopOpt is importable and is a class."""
 
     def test_class_exists(self):
-        assert isinstance(TopOpt, type)
+        assert type(TopOpt) == type
 
     def test_class_name(self):
         assert TopOpt.__name__ == "TopOpt"
@@ -93,7 +93,7 @@ class TestTopOptConstructor:
         opt = _opt()
         assert opt.compliance_history == []
         assert opt.iteration == 0
-        assert isinstance(opt.converged, bool)
+        assert type(opt.converged) == bool
 
 
 # ===========================================================================
@@ -154,7 +154,7 @@ class TestTopOptStep:
     def test_step_returns_positive_float(self):
         opt = _opt()
         comp = opt.step()
-        assert isinstance(comp, float)
+        assert type(comp) == float
         assert comp > 0.0
 
     def test_step_increments_iteration(self):
@@ -194,7 +194,7 @@ class TestTopOptSolve:
     def test_solve_returns_density_array(self):
         opt = _opt()
         result = opt.solve(max_iter=5)
-        assert isinstance(result, np.ndarray)
+        assert type(result) == np.ndarray
         assert result.shape == (4, 6)
 
     def test_solve_density_shape(self):
@@ -211,7 +211,7 @@ class TestTopOptSolve:
     def test_solve_converges_with_default_tol(self):
         opt = _converging_opt()
         opt.solve(max_iter=200, tol=1e-4)
-        assert isinstance(opt.converged, bool)
+        assert type(opt.converged) == bool
 
     def test_solve_respects_max_iter(self):
         opt = _opt()
@@ -290,7 +290,7 @@ class TestComplianceHistory:
         for _ in range(3):
             opt.step()
         for v in opt.compliance_history:
-            assert isinstance(v, float)
+            assert type(v) == float
             assert np.isfinite(v)
 
 
@@ -325,7 +325,7 @@ class TestTopOptReset:
     def test_clears_converged(self):
         opt = _converging_opt()
         opt.solve(max_iter=200, tol=1e-4)
-        assert isinstance(opt.converged, bool)
+        assert type(opt.converged) == bool
         opt.reset()
         assert opt.iteration == 0 or not opt.converged
 
@@ -346,7 +346,7 @@ class TestTopOptReset:
         opt.reset()
         assert opt.iteration == 0
         assert opt.compliance_history == []
-        assert isinstance(opt.converged, bool)
+        assert type(opt.converged) == bool
 
 
 # ===========================================================================
@@ -358,13 +358,13 @@ class TestConvergedProperty:
 
     def test_false_initially(self):
         opt = _opt()
-        assert isinstance(opt.converged, bool)
+        assert type(opt.converged) == bool
 
     def test_false_during_early_steps(self):
         opt = _opt()
         for _ in range(3):
             opt.step()
-        assert isinstance(opt.converged, bool)
+        assert type(opt.converged) == bool
 
 
 # ===========================================================================
@@ -377,7 +377,7 @@ class TestComplianceMethod:
     def test_returns_positive_float(self):
         opt = _opt()
         c = opt.compliance()
-        assert isinstance(c, float)
+        assert type(c) == float
         assert c > 0.0
 
     def test_with_explicit_density(self):

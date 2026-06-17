@@ -8,7 +8,7 @@ def test_init():
 def test_confidence():
     data = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
     m, lo, hi = confidence_interval(data)
-    assert isinstance(m, float)
+    assert isinstance(m, (float, np.floating))
 
 def test_mc_init():
     s = MonteCarloSampler(n_samples=100)

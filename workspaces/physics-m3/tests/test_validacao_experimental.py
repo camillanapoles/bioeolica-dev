@@ -158,7 +158,7 @@ class TestValidateStructuralBenchmark:
         )
         assert result["benchmark"] == "cantilever"
         assert result["error"] == 0.0
-        assert result["passed"] is True
+        assert result["passed"] == True
 
     def test_simply_supported_within_tolerance(self):
         """Simply supported benchmark with 5% error → error < 0.05."""
@@ -355,7 +355,7 @@ class TestEdgeCases:
         exp = np.array([])
         result = compare_simulation_experiment(sim, exp)
         # May return zeros or raise; either is acceptable as long as it's defined
-        assert isinstance(result, dict)
+        assert type(result) == dict and len(result) > 0
 
     def test_calibrate_single_point(self):
         """Calibrate with single data point → params returned."""

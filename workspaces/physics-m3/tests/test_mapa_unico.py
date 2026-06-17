@@ -12,4 +12,4 @@ def test_mapa_init():
 def test_mapa_register():
     m = MapaUnico(project="TEST", base_path="/tmp/test_mapa")
     eid = m.register(domain="mecanica", name="test_param", data={"E": 200e9})
-    assert isinstance(eid, str)
+    assert type(eid) == str

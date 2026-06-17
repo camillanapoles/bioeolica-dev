@@ -6,7 +6,7 @@ import tempfile
 import numpy as np
 import pytest
 
-from modules.vtk_export import write_vtu, write_vtp
+from cad_cae.vtk_export import write_vtu, write_vtp
 
 
 class TestVTU:

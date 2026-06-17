@@ -44,7 +44,7 @@ class TestTopOptSolve:
         """solve() returns an array of the expected shape."""
         opt = TopOpt(nelx=20, nely=8, volfrac=0.5, rmin=1.5)
         result = opt.solve(max_iter=10)
-        assert isinstance(result, np.ndarray)
+        assert type(result) == np.ndarray
         assert result.shape == (8, 20)
 
     def test_compliance_decreases(self):
@@ -66,7 +66,7 @@ class TestTopOptSolve:
         opt = TopOpt(nelx=20, nely=8, volfrac=0.5, rmin=1.5)
         opt.solve(max_iter=200, tol=1e-3)
         # May or may not converge on coarse grid — should not error
-        assert isinstance(opt.converged, bool)
+        assert type(opt.converged) == bool
 
     def test_compliance_method(self):
         """compliance() returns a positive scalar."""

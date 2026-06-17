@@ -8,7 +8,7 @@ def test_app_syntax():
     path = os.path.join(os.path.dirname(__file__), "..", "app", "app.py")
     with open(path) as f:
         tree = ast.parse(f.read())
-    assert isinstance(tree, ast.Module)
+    assert type(tree) == ast.Module
 
 
 def test_app_imports_resolve():
