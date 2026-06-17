@@ -45,3 +45,6 @@ ${HOME}/
 
 # Config local
 .claude/settings.local.json
+*.egg-info/
+.pytest_cache/
+.coverage
