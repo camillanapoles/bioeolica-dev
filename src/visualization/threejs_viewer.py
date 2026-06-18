@@ -87,3 +87,34 @@ def generate_stress_viewer(
     if output_path:
         Path(output_path).write_text(html)
     return html
+
+
+def generate_from_step(step_path: str, output_html: str,
+                       title: str = "STEP Model Viewer") -> str:
+    """Generate 3D viewer from a STEP file via CadQuery->JSON->Three.js."""
+    import json
+    from pathlib import Path
+    try:
+        import cadquery as cq
+        shape = cq.importers.importStep(step_path)
+        bbox = shape.val().BoundingBox()
+        geo = {
+            "type": "box",
+            "width": round(bbox.xmax - bbox.xmin, 1),
+            "height": round(bbox.ymax - bbox.ymin, 1),
+            "depth": round(bbox.zmax - bbox.zmin, 1),
+        }
+        html = generate_viewer_html(
+            title=title,
+            geometry_json=json.dumps(geo),
+            legend_label="Dimensions (mm)",
+            legend_min="0",
+            legend_max=str(max(geo["width"], geo["height"], geo["depth"])),
+            camera_position=(geo["width"], geo["height"], geo["depth"]),
+        )
+        Path(output_html).write_text(html)
+        return output_html
+    except ImportError:
+        html = generate_viewer_html(title=title)
+        Path(output_html).write_text(html)
+        return output_html
