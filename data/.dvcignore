@@ -1,0 +1,14 @@
+# =============================================================================
+# DVC Ignore Rules — Composite Biomaterial for Wind Energy
+# Part of T004 — Phase 1 Setup
+# Reference: plan.md Project Structure
+# =============================================================================
+
+# DVC should only track actual data files, not config or logs
+.gitignore
+*.log
+*.tmp
+
+# Ignore backup files
+*.bak
+*~

@@ -1,0 +1,255 @@
+# Claude Analysis (Backend/Architecture Focus)
+## Current State Analysis
+The existing Virtual Lab Platform (VLP) backend is a FastAPI application with:
+- SQLAlchemy ORM for PostgreSQL (models: Simulation, Material, SolverExecution, Publication)
+- Celery for asynchronous task execution (workflow/tasks.py)
+- Simple solver adapters (OpenFOAM, CalculiX, MFEM) as placeholders
+- Basic API endpoints for CRUD operations on simulations and running them
+- Database initialization on startup
+
+Key observations:
+1. **Fixed Data Model**: The backend has a rigid data model centered around "simulations" and "materials". There is no concept of arbitrary lab types or user-defined entities.
+2. **Hardcoded Solver Logic**: The workflow tasks.py contains hardcoded solver adapters and a fixed workflow (run solvers sequentially, accumulate results).
+3. **Limited Extensibility**: Adding a new solver requires modifying the SOLVER_ADAPTERS mapping and potentially the task logic.
+4. **No Lab Type Concept**: The backend does not store or manage lab type definitions; all simulations are treated as generic CFD-type experiments.
+5. **No SSOT Implementation**: While there is a materials table, it is not designed as a comprehensive Single Source of Truth for all lab-specific constants and entities.
+6. **Minimal Validation**: API validation is basic (Pydantic models); no complex validation based on lab type rules or Ciclo de Produção stage requirements.
+7. **No 5W1H Logging**: Backend does not generate structured logs for user/system actions in the 5W1H format.
+8. **No Mandato Enforcement**: Critical mandatos (M0-M9) are not implemented; for example, there is no automatic GitNexus impact analysis before code/data changes.
+9. **Simple Result Storage**: Simulation results are stored as a JSON blob; no support for rich artifacts, versioning, or linking to external storage.
+10. **Basic Celery Tasks**: Tasks are retried on failure but lack sophisticated workflow capabilities (parallel execution, conditional steps, etc.).
+
+## Gap Analysis
+To transform VLP into a meta-platform for Lab Creation that supports arbitrary domains while enforcing Ciclo de Produção and mandatos, the following gaps must be addressed:
+
+1. **Lab Type Definition Service**: Need a service to store, version, and manage lab type definitions, including:
+   - Stages (with entry/exit criteria, required tasks)
+   - Data model (entities, attributes, types, units, validation rules, SSOT mappings)
+   - Workflow configuration (task types, solver mappings, data flow between stages)
+   - Visualization pipelines
+   - Metadata (domain, tags, version, author)
+
+2. **Lab Instance Service**: Service to manage specific realizations of lab types, storing:
+   - Current stage and progression state
+   - Instance-specific data (values for entities/attributes)
+   - Task completion status and validation results
+   - Links to artifacts, visualizations, and logs
+   - PQMS scores and evaluation data
+
+3. **Extensible Workflow Engine**: Replace the simple Celery task loop with a workflow engine that can:
+   - Execute complex workflows defined per lab type (parallel, conditional, looping tasks)
+   - Integrate with various task types (solvers, manual steps, data processing scripts, approval gates)
+   - Handle task dependencies, retries, timeouts, and escalations
+   - Provide detailed execution logging and monitoring
+   - Support workflow versioning and migration
+
+4. **Comprehensive SSOT Service**: Implement a true Single Source of Truth that:
+   - Stores not just materials but any lab-relevant constant, parameter, or reference data
+   - Supports versioning and temporal queries (what was the value of X at time T?)
+   - Provides APIs for browsing, searching, and updating entities
+   - Enforces access control and audit trails
+   - Integrates with lab type definitions to mark which attributes must come from SSOT
+
+5. **Artifact and Result Management**: Enhance result handling to:
+   - Store rich artifacts (simulation output files, documents, datasets, visualizations)
+   - Version artifacts and link them to specific lab instance tasks/executions
+   - Integrate with object storage (S3/MinIO) for scalability
+   - Provide metadata extraction and indexing for searchability
+
+6. **5W1H Logging Infrastructure**: Implement a centralized logging service that:
+   - Receives structured 5W1H logs from all platform components (frontend, backend, workflow tasks, solvers)
+   - Stores logs in a queryable format (e.g., Elasticsearch) with proper indexing
+   - Provides APIs for retrieving logs by lab instance, user, time range, action type, etc.
+   - Supports log correlation via trace IDs for distributed tracing
+
+7. **Mandato Enforcement Framework**: Build platform-wide enforcers for M0-M9:
+   - M0: Automatic GitNexus impact analysis triggered on any attempted change to lab type definitions, workflow configurations, or SSOT entities; changes require review if risk exceeds threshold.
+   - M1: Workflow engine enforces stage completion rules; prevents advancement until all required tasks are done and validated.
+   - M2: Enforces sequential stage progression by default (with override mechanisms requiring justification).
+   - M3: When updating lab type definitions, require re-saving of the full definition and trigger validation tests.
+   - M4: SSOT service is the canonical source for all constants; platform components must query it rather than hardcoding values.
+   - M5: 5W1H logging is required for all actions; platform rejects actions that don't generate valid logs.
+   - M6: Integrate with a RAG (Retrieval-Augmented Generation) knowledge base for storing and retrieving research documents, papers, etc.
+   - M7: Lab type definition includes scope and focus areas; platform provides warnings when users attempt to add unrelated data/tasks.
+   - M8/M9: Automatic archiving of completed lab instances; synchronization of tasksToIssue with external issue trackers; version control for lab types.
+
+## High-Level Architectural Recommendations
+1. **Domain-Driven Design (DDD) with Bounded Contexts**:
+   - Core Platform Context: Handles lab type/instances, users, authentication, authorizations.
+   - Lab Type Definition Context: Manages the creation, versioning, and validation of lab types.
+   - Lab Execution Context: Runs workflows, manages task execution, handles artifacts.
+   - SSOT Context: Manages the single source of truth for all reference data.
+   - Logging & Audit Context: Handles 5W1H logs, audit trails, and compliance reporting.
+   - Each context has its own domain model, preventing leakage of concerns.
+
+2. **Event-Driven Architecture**:
+   - Use an event broker (e.g., Apache Kafka, AWS SNS/SQS, or Redis Streams) for loose coupling between contexts.
+   - Key events: LabTypeCreated, LabInstanceStageCompleted, SSOTEntityUpdated, ValidationPassed, MandatoViolationDetected.
+   - Enables scalability, fault tolerance, and easier integration of new features.
+
+3. **Plugin-Based Solver and Task System**:
+   - Define interfaces for task types (SolverTask, ManualTask, ScriptTask, ApprovalTask, etc.).
+   - Allow lab types to register new task types via plugins.
+   - Platform discovers and loads plugins at runtime.
+   - Isolates core workflow engine from specific task implementations.
+
+4. **CQRS (Command Query Responsibility Segregation)**:
+   - Separate read and write models for better performance and scalability.
+   - Write model handles lab type/instance modifications, workflow executions.
+   - Read model optimized for dashboards, listings, and visualizations (may use denormalized views or search indexes).
+   - Particularly useful for lab instance dashboards that need to show aggregated data from multiple sources.
+
+5. **Microservices for Scalability**:
+   - Break down the backend into independently scalable services:
+     - Lab Type Service
+     - Lab Instance Service
+     - Workflow Engine Service
+     - SSOT Service
+     - Artifact Storage Service
+     - Logging Service
+     - API Gateway (for authentication, routing, rate limiting)
+   - Communicate via APIs and events.
+   - Allows scaling specific components based on load (e.g., more workflow workers during heavy simulation periods).
+
+6. **Advanced Workflow Engine**:
+   - Consider adopting a mature workflow engine (e.g., Temporal.io, Camunda, or Apache Airflow) rather than building from scratch.
+   - Provides built-in support for:
+     - Durable execution (survives process restarts)
+     - Visual workflow monitoring
+     - Task queuing, retries, timeouts
+     - Conditional logic and loops
+     - Activity heartbeats and cancellation
+   - If building custom, ensure it supports:
+     - Workflow definition as JSON/yaml (lab type specific)
+     - Persistent storage of workflow state
+     - Scalable worker pools
+     - Dead letter queues for failed tasks
+
+7. **Enhanced SSOT with Temporal Capabilities**:
+   - Implement SSOT using a database with temporal tables (e.g., PostgreSQL temporal tables) or an event-sourced approach.
+   - Every SSOT entity change creates a new version with timestamps.
+   - Lab instances can specify which version of an SSOT entity they used (for reproducibility).
+   - Enables answering: "What would the results be if we used the old material property value?"
+
+## Mandato Compliance Strategy (Backend-Focused)
+- **M0 (GitNexus Impact)**: 
+  - Implement a platform-wide interceptor (e.g., FastAPI middleware or workflow engine hook) that:
+    - On any attempt to modify lab type definitions, workflow configurations, or SSOT entities (via API or internal call)
+    - Automatically invokes GitNexus analysis on the affected code/configuration paths
+    - Blocks the change if risk is HIGH/CRITICAL without explicit override (which requires justification and logging)
+    - For MEDIUM risk, requires acknowledgment in the UI
+    - Stores the impact analysis result with the change request for audit
+- **M1 (Task Completion)**: 
+  - Workflow engine maintains stage completion state.
+  - Transitions to next stage only when:
+    - All required tasks in current stage are marked COMPLETED
+    - Validation checks (if defined for stage transition) pass
+    - Any blocking manual tasks are approved
+  - Returns clear error if advancement attempted prematurely.
+- **M2 (One Task at a Time)**: 
+  - Default workflow enforces sequential stage progression.
+  - Override possible only with:
+    - Explicit justification logged via 5W1H
+    - Approval from a designated role (e.g., lab supervisor)
+    - Recorded in the lab instance's audit trail
+- **M3 (Reimplement, Don't Verify)**:
+  - When a lab type definition is updated, the platform:
+    - Invalidates any cached workflows or forms derived from the old definition
+    - Requires that the new definition passes a set of validation tests (syntax, referential integrity, etc.)
+    - Does not allow incremental patches; full definition must be provided
+    - Lab instances using the old definition can continue but cannot migrate to new version without explicit conversion process
+- **M4 (SSOT & No Hardcoding)**:
+  - Platform components (backend services, workflow tasks) are prohibited from accessing hardcoded constants for lab-relevant values.
+  - All such values must be obtained via the SSOT service API.
+  - Static code analysis and runtime checks can enforce this.
+  - SSOT service itself is allowed to have hardcoded defaults for platform infrastructure (e.g., database connection pools).
+- **M5 (5W1H Logging)**:
+  - Implement a logging aspect or middleware that:
+    - Automatically captures the context of any platform API call, workflow task start/end, or SSOT read/write
+    - Generates a 5W1H log entry with:
+        - What: API endpoint/method + task type + operation
+        - Why: From request body/justification field or system-triggered reason (e.g., "M0 auto-triggered")
+        - Who: User ID from JWT token or system/service account
+        - When: Start and end timestamps
+        - Where: Lab instance ID, stage, component/service name
+        - How: HTTP method/tools used, input parameters
+        - Inputs: List of input resource IDs (lab instance, SSOT entities, etc.)
+        - Outputs: List of output resource IDs (new SSOT entity, artifact, etc.)
+        - Validation: Status from validation step or auto-passed for system actions
+        - Next Steps: Suggested actions based on outcome (e.g., "Proceed to next stage", "Review validation failure")
+    - Sends logs to a dedicated logging service for storage and indexing.
+- **M6 (RAG Knowledge)**:
+  - Integrate with a RAG system (e.g., using LangChain or LlamaIndex with a vector store) to:
+    - Allow users to attach research documents, papers, datasets to lab instances
+    - Enable semantic search over attached knowledge
+    - Provide context-aware suggestions (e.g., "Based on similar papers, consider adjusting X parameter")
+    - Store knowledge with versioning and linkage to specific lab instances/stages
+- **M7 (Focus Pertinence)**:
+  - Lab type definition includes a "scope" field describing the intended domain and boundaries.
+  - UI provides warnings when users attempt to:
+    - Add entities/attributes outside the defined scope
+    - Link to SSOT entities not approved for this lab type
+    - Use solvers or tasks not declared in the lab type's workflow
+    - Platform can enforce scope via validation rules in lab type definition.
+- **M8/M9 (Continuity & Sync)**:
+  - Lab Instance Archiving:
+    - On completion (or user-triggered), platform:
+      1. Takes a snapshot of the lab instance's data (including SSOT references at point-in-time)
+      2. Copies all associated artifacts to long-term storage
+      3. Generates a comprehensive 5W1H log archive
+      4. Creates a reproducible environment specification (tool versions, config)
+      5. Stores the archive in an immutable object storage bucket with metadata
+      6. Generates a DOI-like handle for citation
+    - Provides UI to browse/search archived labs and to fork new instances from archives.
+  - tasksToIssue Synchronization:
+    - Platform maintains a mapping between lab instance milestones and external issue tracker tickets.
+    - On completion of significant tasks (e.g., stage completion, validation pass), platform:
+      - Checks if a corresponding issue exists in the tracker (e.g., GitHub Issues, Jira)
+      - Updates the issue status, adds comments with results/logs
+      - Creates new issues if none exist (based on lab type configuration)
+    - Configurable per lab type (which events sync to which issue fields).
+
+## Risks and Mitigations
+1. **Risk**: Increased system complexity may reduce reliability and increase failure points.
+   **Mitigation**: 
+      - Adopt microservices gradually; start with a monolithic modular architecture and split as needed.
+      - Implement comprehensive health checks, circuit breakers, and fallback mechanisms.
+      - Use chaos engineering to test resilience.
+      - Invest in observability (logging, metrics, tracing) from the start.
+2. **Risk**: Workflow engine becoming a bottleneck or single point of failure.
+   **Mitigation**:
+      - Choose a scalable, distributed workflow engine (e.g., Temporal) or design for horizontal scaling.
+      - Implement workflow sharding by lab instance or type.
+      - Provide bulkhead patterns to isolate workflow failures.
+3. **Risk**: SSOT becoming a performance bottleneck under high read load.
+   **Mitigation**:
+      - Implement multi-layered caching (local, distributed, CDN for static references).
+      - Use read replicas and query optimization.
+      - Implement predictive preloading based on lab instance workflow.
+4. **Risk**: Ensuring dato consistency and preventing lab instances from using outdated SSOT values.
+   **Mitigation**:
+      - Lab instances can specify SSOT version tolerance (e.g., "must use version >= X").
+      - Platform provides notifications when newer SSOT versions are available.
+      - For critical reproducibility, lab instances can lock to specific SSOT versions.
+5. **Risk**: Difficulty in enforcing M3 (reimplement, don't verify) without hindering legitimate updates.
+   **Mitigation**:
+      - Distinguish between breaking changes (require full reimplement) and non-breaking changes (allow incremental).
+      - Use semantic versioning for lab types; define what constitutes a breaking change.
+      - Provide automated migration scripts for common non-breaking updates.
+6. **Risk**: Overhead of 5W1H logging impacting performance.
+   **Mitigation**:
+      - Asynchronous logging: fire-and-forget with guaranteed delivery via message queue.
+      - Sampling for high-frequency actions (if statistically valid).
+      - Optimize log storage schema and indexing.
+
+## Open Questions
+1. What workflow engine should be adopted? Build custom vs. use existing (Temporal, Camunda, Airflow)?
+2. How granular should the SSOT be? Should it include platform configuration values or only lab-relevant data?
+3. How to handle very large artifacts (e.g., multi-terabyte simulation output) in terms of storage, streaming, and visualization?
+4. What level of workflow complexity should be supported out-of-the-box? Should we include advanced features like dynamic workflow generation or machine learning-driven task selection?
+5. How to balance lab type flexibility with platform stability? How much freedom should lab type designers have to modify core platform behavior?
+6. What is the appropriate timeout for workflow tasks, and how should we handle tasks that exceed it (escalation, partial results, etc.)?
+7. How should we handle lab types that require specialized hardware (e.g., GPU-specific solvers, FPGA acceleration) in a shared platform?
+8. What is the strategy for lab type deprecation and migration when breaking changes are necessary?
+9. How to implement effective search and discovery over the growing lab type and instance repository?
+10. What audit trail and compliance features are needed for regulated industries (e.g., pharmaceuticals, aerospace)?

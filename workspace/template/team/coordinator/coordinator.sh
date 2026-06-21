@@ -238,9 +238,7 @@ if [ "$COMMAND" = "status" ]; then
     echo -e "${YELLOW}Agentes no workspace:${NC}"
     for agent_dir in "$TEAM_DIR"/agent-*/; do
         if [ -d "$agent_dir" ]; then
-            local agent_name
             agent_name=$(basename "$agent_dir")
-            local task_count
             task_count=$(find "$agent_dir" -name "*.md" -o -name "*.json" 2>/dev/null | wc -l)
             echo -e "  ${GREEN}✓${NC} $agent_name ($task_count arquivos)"
         fi
@@ -313,7 +311,6 @@ if [ "$COMMAND" = "publish" ]; then
     else
         echo -e "${YELLOW}Aviso: propagation-proto.sh não encontrado. Publicando diretamente.${NC}"
         # Fallback: copia para shared/
-        local context_id
         context_id=$(jq -r '.id // "unknown"' "$CONTEXT_FILE" 2>/dev/null || echo "unknown")
         cp "$CONTEXT_FILE" "$SHARED_DIR/$context_id.json"
         echo -e "${GREEN}✓ Contexto copiado para shared/$context_id.json${NC}"
@@ -335,7 +332,6 @@ if [ "$COMMAND" = "report" ]; then
 
     # Contexto raiz
     if [ -f "$CONTEXT_DIR/problem_statement.md" ]; then
-        local problem_title
         problem_title=$(head -1 "$CONTEXT_DIR/problem_statement.md" 2>/dev/null | sed 's/^# //' || echo "Não definido")
         echo -e "${YELLOW}Problema:${NC} $problem_title"
     fi
@@ -353,13 +349,11 @@ if [ "$COMMAND" = "report" ]; then
     if [ -f "$DOMAINS_DIR/relevance_check.md" ]; then
         echo ""
         echo -e "${YELLOW}Cobertura de Domínios:${NC}"
-        local total
         total=$(grep -cE '^\|' "$DOMAINS_DIR/relevance_check.md" 2>/dev/null || echo 0)
-        local confirmed
         confirmed=$(grep -c '✅\|Sim\|sim' "$DOMAINS_DIR/relevance_check.md" 2>/dev/null || echo 0)
         total=$((total - 2))  # remove header + separator
         if [ "$total" -gt 0 ]; then
-            local pct=$((confirmed * 100 / total))
+            pct=$((confirmed * 100 / total))
             echo -e "  $confirmed de $total domínios confirmados ($pct%)"
         fi
     fi
@@ -367,14 +361,12 @@ if [ "$COMMAND" = "report" ]; then
     # Contextos publicados
     echo ""
     echo -e "${YELLOW}Contextos publicados:${NC}"
-    local ctx_count
     ctx_count=$(find "$PROJECT_DIR/context" -name "*.json" -not -name "*.events.log" -not -name ".subscriptions.json" -not -name "5w1h.json" 2>/dev/null | wc -l)
     echo "  $ctx_count contextos no índice"
 
     # Reuniões
     echo ""
     echo -e "${YELLOW}Reuniões realizadas:${NC}"
-    local meeting_count
     meeting_count=$(find "$MEETINGS_DIR/ata" -name "*.md" 2>/dev/null | wc -l)
     echo "  $meeting_count atas registradas"
 

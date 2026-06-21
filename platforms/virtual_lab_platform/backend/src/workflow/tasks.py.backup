@@ -1,0 +1,232 @@
+"""
+Celery tasks for executing simulation workflows.
+"""
+from __future__ import annotations
+
+import json
+import logging
+import os
+import shutil
+import subprocess
+import time
+import uuid
+from datetime import datetime
+from typing import Any, Dict
+
+from celery import Celery
+from sqlalchemy.orm import Session
+
+# Import local Celery app
+from .celery_app import celery_app
+
+from ..db.session import SessionLocal
+from ..db.models import Simulation, SolverExecution
+from ..db.repository import (
+    SimulationRepository,
+    SolverExecutionRepository,
+    MaterialRepository,
+)
+
+logger = logging.getLogger(__name__)
+
+def get_db_session() -> Session:
+    return SessionLocal()
+
+# Simulated solver adapters
+def run_openfoam_case(case_dir: str) -> Dict[str, Any]:
+    """
+    Placeholder for actual OpenFOAM execution.
+    In reality, would run `blockMesh`, `simpleFoam`, etc., and parse results.
+    For MVP, we simulate by sleeping and returning dummy fields.
+    """
+    logger.info(f"Running OpenFOAM simulation in {case_dir}")
+    time.sleep(2)  # simulate compute time
+    # Dummy results: pressure field average, velocity magnitude
+    return {
+        "pressure_avg": 101325.0,
+        "velocity_magnitude": 5.0,
+        "iterations": 150,
+        "converged": True,
+    }
+
+def run_calculix_case(inp_file: str) -> Dict[str, Any]:
+    """
+    Placeholder for CalculiX execution.
+    """
+    logger.info(f"Running CalculiX simulation with {inp_file}")
+    time.sleep(2)
+    return {
+        "max_displacement": 0.002,
+        "stress_von_mises": 250e6,
+        "iterations": 20,
+        "converged": True,
+    }
+
+def run_mfem_case(json_input: str) -> Dict[str, Any]:
+    """
+    Placeholder for MFEM execution.
+    """
+    logger.info(f"Running MFEM simulation with input {json_input[:50]}...")
+    time.sleep(2)
+    return {
+        "energy_norm": 1.5e-3,
+        "iterations": 30,
+        "converged": True,
+    }
+
+# Mapping solver name to adapter function
+SOLVER_ADAPTERS = {
+    "openfoam": run_openfoam_case,
+    "calculix": run_calculix_case,
+    "mfem": run_mfem_case,
+}
+# Configurable base paths for temporary workdir and storage
+WORKDIR_BASE = os.getenv("WORKDIR_BASE")
+if not WORKDIR_BASE:
+    raise RuntimeError("WORKDIR_BASE environment variable must be set")
+STORAGE_BASE = os.getenv("STORAGE_BASE")
+if not STORAGE_BASE:
+    raise RuntimeError("STORAGE_BASE environment variable must be set")
+
+def get_db_session() -> Session:
+    return SessionLocal()
+
+# Simulated solver adapters
+def run_openfoam_case(case_dir: str) -> Dict[str, Any]:
+    """
+    Placeholder for actual OpenFOAM execution.
+    In reality, would run `blockMesh`, `simpleFoam`, etc., and parse results.
+    For MVP, we simulate by sleeping and returning dummy fields.
+    """
+    logger.info(f"Running OpenFOAM simulation in {case_dir}")
+    time.sleep(2)  # simulate compute time
+    # Dummy results: pressure field average, velocity magnitude
+    return {
+        "pressure_avg": 101325.0,
+        "velocity_magnitude": 5.0,
+        "iterations": 150,
+        "converged": True,
+    }
+
+def run_calculix_case(inp_file: str) -> Dict[str, Any]:
+    """
+    Placeholder for CalculiX execution.
+    """
+    logger.info(f"Running CalculiX simulation with {inp_file}")
+    time.sleep(2)
+    return {
+        "max_displacement": 0.002,
+        "stress_von_mises": 250e6,
+        "iterations": 20,
+        "converged": True,
+    }
+
+def run_mfem_case(json_input: str) -> Dict[str, Any]:
+    """
+    Placeholder for MFEM execution.
+    """
+    logger.info(f"Running MFEM simulation with input {json_input[:50]}...")
+    time.sleep(2)
+    return {
+        "energy_norm": 1.5e-3,
+        "iterations": 30,
+        "converged": True,
+    }
+
+# Mapping solver name to adapter function
+SOLVER_ADAPTERS = {
+    "openfoam": run_openfoam_case,
+    "calculix": run_calculix_case,
+    "mfem": run_mfem_case,
+}
+
+@celery_app.task(bind=True, max_retries=3)
+def run_simulation_task(self, simulation_id: str):
+    """
+    Celery task that orchestrates a full simulation:
+    1. Load simulation parameters from DB.
+    2. For each solver specified (could be multiple), run the adapter.
+    3. Store results and update DB.
+    """
+    logger.info(f"Starting workflow for simulation {simulation_id}")
+    db: Session = get_db_session()
+    try:
+        sim_repo = SimulationRepository(db)
+        solver_repo = SolverExecutionRepository(db)
+
+        simulation = sim_repo.get(uuid.UUID(simulation_id))
+        if not simulation:
+            logger.error(f"Simulation {simulation_id} not found")
+            return {"error": "Simulation not found"}
+
+        # Update status to running
+        sim_repo.update_status(simulation.id, "running")
+        db.commit()
+
+        # Determine which solvers to run from parameters
+        # Expected format: {"solvers": ["openfoam", "calculix"], "openfoam_params": {...}, ...}
+        params = simulation.parameters or {}
+        solvers_to_run = params.get("solvers", ["openfoam"])  # default
+
+        for solver_name in solvers_to_run:
+            logger.info(f"Running solver {solver_name} for sim {simulation.id}")
+            # Create solver execution record
+            exec_record = solver_repo.create(
+                simulation_id=simulation.id,
+                solver_name=solver_name,
+                version="1.0",
+                parameters=params.get(f"{solver_name}_params", {}),
+            )
+            db.commit()
+
+            try:
+                # Prepare input
+                workdir = _prepare_solver_input(solver_name, params.get(f"{solver_name}_params", {}))
+                # Run solver (placeholder)
+                if solver_name in SOLVER_ADAPTERS:
+                    results = SOLVER_ADAPTERS[solver_name](workdir)
+                else:
+                    # Fallback: simulate generic
+                    results = {"status": "completed", "message": f"Solver {solver_name} simulated"}
+                # Store output
+                storage_path = _store_solver_output(solver_name, workdir, results)
+                # Update execution record with success
+                solver_repo.update_status(
+                    exec_record.id,
+                    status="success",
+                    ended_at=datetime.utcnow(),
+                    logs=f"Solver {solver_name} completed successfully",
+                    result_path=storage_path,
+                )
+                db.commit()
+                # Accumulate results into simulation.results
+                current_results = simulation.results or {}
+                if isinstance(current_results, str):
+                    try:
+                        current_results = json.loads(current_results)
+                    except Exception:
+                        current_results = {}
+                current_results[solver_name] = results
+                sim_repo.add_results(simulation.id, current_results)
+                db.commit()
+            except Exception as exc:
+                logger.exception(f"Solver {solver_name} failed for sim {simulation.id}")
+                solver_repo.update_status(
+                    exec_record.id,
+                    status="failed",
+                    ended_at=datetime.utcnow(),
+                    logs=str(exc),
+                )
+                db.commit()
+                # Continue to next solver? For now, break and mark simulation failed.
+                sim_repo.update_status(simulation.id, "failed")
+                db.commit()
+                raise self.retry(exc=exc, countdown=60, max_retries=3)
+
+        # Finalize simulation as completed
+        sim_repo.update_status(simulation.id, "completed")
+        db.commit()
+        logger.info(f"Workflow completed for simulation {simulation.id}")
+        return {"status": "completed", "simulation_id": str(simulation.id)}
+    finally:
+        db.close()

@@ -1,0 +1,6 @@
+{"file": "task.json", "description": "Task tracking information for the computational lab platform project"}
+{"file": "plan.md", "description": "Detailed implementation plan for the Lab Creation Platform"}
+{"file": "requirements.md", "description": "Functional and non-functional requirements for the platform"}
+{"file": "antigravity_analysis.txt", "description": "Frontend/UI focused analysis (simulated due to sandbox restrictions)"}
+{"file": "claude_analysis.txt", "description": "Backend/architecture focused analysis (simulated due to sandbox restrictions)"}
+{"file": "platforms/virtual_lab_platform/", "description": "Existing Virtual Lab Platform codebase being extended"}

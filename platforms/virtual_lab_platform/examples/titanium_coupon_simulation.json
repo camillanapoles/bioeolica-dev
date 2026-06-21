@@ -1,0 +1,37 @@
+{
+  "name": "Ti-6Al-4V coupon tensile test - micro to macro",
+  "description": "Validation example: tensile test of a Ti-6Al-4V coupon for satellite structure, demonstrating micro (DFT), meso (FEM with grain structure), and macro (component level) analysis.",
+  "parameters": {
+    "solvers": ["dft", "fem", "cfd"],  // placeholder solver names; in reality we would have specific solvers for each scale
+    "dft_params": {
+      "material": "Ti-6Al-4V",
+      "properties_of_interest": ["elastic_modulus", "yield_strength", "fracture_toughness"],
+      "temperature": 300,  // K
+      "pressure": 101325   // Pa
+    },
+    "fem_params": {
+      "material": "Ti-6Al-4V",
+      "geometry": "coupon_grain_structure.vtk",  // would be provided or generated
+      "mesh_density": "medium",
+      "boundary_conditions": {
+        "fixed_end": true,
+        "applied_load": 10000,  // N
+        "load_direction": "axial"
+      },
+      "temperature": 300,
+      "loading_type": "static"
+    },
+    "cfd_params": {
+      "material": "Ti-6Al-4V",
+      "geometry": "satellite_bracket.stl",  // macro component
+      "flow_conditions": {
+        "velocity_inlet": 50,  // m/s
+        "turbulence_model": "k-epsilon",
+        "temperature": 300
+      },
+      "thermal_analysis": true,
+      "structural_coupling": true  // for thermo-mechanical analysis
+    }
+  },
+  "material_id": ""  // would be the UUID of Ti-6Al-4V material entry
+}

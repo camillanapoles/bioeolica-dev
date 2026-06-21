@@ -1,0 +1,13 @@
+{
+  "id": "virtual-lab-platform",
+  "title": "Plataforma de Laboratórios Virtuais Computacionais Deep Tech",
+  "status": "completed",
+  "complexity": "L+",
+  "risk": "high",
+  "domain": "fullstack",
+  "currentPhase": "completed",
+  "nextAction": "none",
+  "createdAt": "2026-06-21T14:55:00Z",
+  "updatedAt": "2026-06-21T18:00:00Z",
+  "branch": "main"
+}

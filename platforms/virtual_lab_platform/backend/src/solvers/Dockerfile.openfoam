@@ -1,0 +1,5 @@
+FROM openfoam/openfoam2312
+WORKDIR /case
+# Entrypoint that runs blockMesh then simpleFoam
+ENTRYPOINT ["/bin/bash", "-c"]
+CMD ["source /opt/openfoam*/etc/bashrc && blockMesh && simpleFoam"]

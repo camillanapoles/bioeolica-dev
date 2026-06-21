@@ -1,0 +1,127 @@
+# Antigravity Analysis (Frontend/UI Focus)
+## Current State Analysis
+The existing Virtual Lab Platform (VLP) frontend is a React application (using Vite) with TypeScript. It provides a basic interface for:
+- Creating simulations with name, description, and fixed parameters (solvers: openfoam with hardcoded velocity/viscosity)
+- Listing simulations
+- Running simulations (triggers backend Celery task)
+- Viewing results (placeholder alert)
+
+Key observations:
+1. **Fixed Simulation Parameters**: The frontend hardcodes solver parameters (velocity: 10, viscosity: 1.5e-5) in the createSimulation function. There is no dynamic form generation based on solver type or lab requirements.
+2. **Limited Visualization**: No actual result visualization; only a placeholder alert for "View Results".
+3. **No Lab Type Concept**: The interface assumes a single type of lab (CFD/OpenFOAM simulations). There is no ability to select different lab types or define custom stages.
+4. **Basic Workflow UI**: Users can create and run simulations, but there is no stage-based progression according to Ciclo de Produção.
+5. **No SSOT Integration**: All values are hardcoded or come from fixed parameters; no connection to a Single Source of Truth for material properties, constants, etc.
+5. **No 5W1H Logging**: User actions are not logged in the structured 5W1H format required by M5.
+6. **No Mandato Enforcement**: The UI does not enforce any of the mandatos (M0-M9); for example, there is no automatic GitNexus impact analysis before changes.
+
+## Gap Analysis
+To evolve VLP into a Lab Creation Platform (LCP) that supports arbitrary lab types while enforcing Ciclo de Produção and mandatos, the following gaps must be addressed:
+
+1. **Lab Type Definition UI**: Need a designer interface to create lab types with:
+   - Stages (based on Ciclo de Produção or custom)
+   - Data models (entities, attributes, units, validation rules)
+   - Workflow configuration (mapping stages to solvers/scripts/manual steps)
+   - Visualization pipelines per stage
+   - SSOT attribute mapping
+   - Mandato compliance configuration
+
+2. **Dynamic Form Generation**: Replace hardcoded simulation creation with forms generated from the lab type's data model for the current stage.
+
+3. **Stage-Based Workflow UI**: Implement a wizard or dashboard that shows:
+   - Current stage and required tasks
+   - Blocking/non-blocking tasks
+   - Entry/exit criteria for stages
+   - Visualization panels relevant to the stage
+   - Decision gates (go/no-go) based on validation
+
+4. **Result Visualization Framework**: Integrate visualization libraries (Plotly, D3, Three.js, VTK.js) to display:
+   - 2D/3D scientific data (solver results)
+   - Charts and graphs for metrics
+   - Interactive diagrams (process flows, data lineage)
+   - Ability to define visualization pipelines per lab type
+
+5. **SSOT Integration**: UI components must fetch allowed values and constants from the SSOT (e.g., material properties, physical constants) rather than hardcoding.
+
+6. **5W1H Logging Mechanism**: Implement automatic logging of user actions in the structured 5W1H format, including:
+   - What action was performed
+   - Why (user-provided justification or system-triggered)
+   - Who (user ID, role)
+   - When (timestamps)
+   - Where (lab instance, stage, component)
+   - How (method, tools, parameters)
+   - Inputs/outputs references
+   - Validation status
+   - Next steps
+
+7. **Mandato Enforcement in UI**:
+   - M0: Trigger GitNexus impact analysis before allowing changes to lab type definitions or critical configurations; display results and require acknowledgment if risk is MEDIUM/HIGH/CRITICAL.
+   - M1: Prevent stage advancement until current stage tasks are marked complete and validated.
+   - M4: Ensure no hardcoded values in UI configurations; all must come from SSOT or lab type definition.
+   - M5: Enforce 5W1H logging for all user actions.
+   - M8/M9: Integrate with backend to update tasksToIssue and archive lab instances upon completion.
+
+## High-Level Architectural Recommendations
+1. **Microfrontend Architecture**: 
+   - Core shell handles authentication, navigation, and common utilities.
+   - Lab type-specific UIs are loaded as microfrontends (via Module Federation or similar) to allow independent development and deployment.
+   - This enables different lab types to have radically different UIs while sharing common platform services.
+
+2. **Dynamic Form Engine**:
+   - Use JSON Schema (or similar) to define lab type data models.
+   - Integrate a form library (e.g., React Hook Form, Formik, or Ant Design Forms) that generates forms from JSON Schema.
+   - Support conditional logic, validation, and SSOT-driven dropdowns/autocompletes.
+
+3. **Visualization Pipeline Framework**:
+   - Define a visualization contract: each stage can specify one or more visualization components.
+   - Visualization components receive data from the lab instance's SSOT or simulation results.
+   - Use a registry to map visualization types to React components.
+   - Support lazy loading of heavy visualization libraries (e.g., VTK.js for 3D only when needed).
+
+4. **State Management for Lab Progression**:
+   - Use a state machine (e.g., XState) to manage lab instance progression through stages.
+   - Each state (stage) defines:
+     - Allowed actions (tasks)
+     - Entry/exit conditions
+     - Required visualizations
+     - Validation rules
+   - Prevent invalid transitions (enforces M1).
+
+5. **SSOT Integration Layer**:
+   - Create a service that caches SSOT lookups (with TTL) for UI performance.
+   - UI components subscribe to SSOT changes for real-time updates (e.g., if material properties are updated).
+
+6. **5W1H Logging Middleware**:
+   - Intercept all user interactions (clicks, form submissions, navigation) via a higher-order component or custom hooks.
+   - Automatically generate 5W1H logs and send to backend for storage.
+   - Provide UI components for users to add justifications ("why") and next steps.
+
+## Mandato Compliance Strategy (UI-Focused)
+- **M0 (GitNexus Impact)**: Before saving changes to lab type definitions or workflow configurations, invoke backend GitNexus analysis and display a modal with risk level and affected symbols. Require explicit confirmation for MEDIUM+/HIGH risk.
+- **M1 (Task Completion)**: UI prevents stage transition until all required tasks for current stage are marked complete and validated. Show blocking tasks prominently.
+- **M2 (One Task at a Time)**: Enforce sequential stage progression; UI only shows tasks for current stage unless overridden (with justification).
+- **M3 (Reimplement, Don't Verify)**: When updating lab type definitions, UI forces re-saving of the entire definition (not just patches) and triggers backend re-implementation checks.
+- **M4 (SSOT & No Hardcoding)**: UI builds dynamic forms and selectors from SSOT; development guidelines prohibit hardcoding values in lab type configurations.
+- **M5 (5W1H Logging)**: Automatic logging of all UI interactions as described; UI provides view to see logs for current lab instance.
+- **M6 (RAG Knowledge)**: Integrate a searchable knowledge base in the UI for attaching research documents, articles, etc., to lab instances.
+- **M7 (Focus Pertinence)**: UI guides users to stay within the defined lab type scope; warnings when attempting to add unrelated data or tasks.
+- **M8/M9 (Continuity & Sync)**: UI provides buttons to archive lab instances (triggering backend sync) and to fork/create new instances from existing ones.
+
+## Risks and Mitigations
+1. **Risk**: Overwhelming complexity for users creating lab types.
+   **Mitigation**: Provide templates for common lab types (materials, CFD, structural, energy) and guided wizards; progressive disclosure of advanced options.
+2. **Risk**: Performance issues with dynamic form rendering and visualization.
+   **Mitigation**: Cache form schemas and visualization components; use web workers for heavy computations; implement virtualization for large lists.
+3. **Risk**: Ensuring SSOT consistency and preventing stale data in UI.
+   **Mitigation**: Implement SSOT versioning with cache invalidation; UI shows "last updated" timestamps and allows manual refresh.
+4. **Risk**: Users bypassing mandato enforcement (e.g., providing false justifications to skip M0).
+   **Mitigation**: Log all justifications and require periodic review; integrate with audit trails; flag frequent skip attempts for admin review.
+5. **Risk**: Fragmentation of UI as lab types diverge significantly.
+   **Mitigation**: Maintain a shared UI component library; enforce design system usage; provide common patterns for stage progression, forms, and visualizations.
+
+## Open Questions
+1. What level of customization should be allowed for the Ciclo de Produção stages? Should users be able to rename, reorder, or omit stages?
+2. How should visualization pipelines be defined? Should they be configured per stage or per data output type?
+3. What is the best approach for handling very large datasets in the UI (e.g., CFD mesh results) without overwhelming the browser?
+4. How to balance SSOT performance with data freshness? Should UI subscribe to real-time updates or rely on periodic polling?
+5. What authentication/authorization model should be used for lab type design vs. lab usage (e.g., designers vs. researchers vs. students)?

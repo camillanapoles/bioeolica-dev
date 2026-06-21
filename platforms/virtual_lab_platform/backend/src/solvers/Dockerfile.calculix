@@ -1,0 +1,5 @@
+FROM ubuntu:22.04
+RUN apt-get update && apt-get install -y calculix
+WORKDIR /case
+ENTRYPOINT ["calculix", "-i"]
+# The input file name (without .inp) will be provided as argument via docker run

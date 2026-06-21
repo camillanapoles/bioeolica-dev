@@ -1,0 +1,13 @@
+{
+  "id": "computational-lab-platform",
+  "title": "Computational Lab Creation Platform - System for building domain-specific laboratories following Ciclo de Produção",
+  "status": "in_progress",
+  "complexity": "L+",
+  "risk": "high",
+  "domain": "fullstack",
+  "currentPhase": "implementation",
+  "nextAction": "Spawn child agents for parallel development of Layer 1 components (SSOT, Lab Type, API Gateway, 5W1H Logging)",
+  "createdAt": "2026-06-21T18:30:00Z",
+  "updatedAt": "2026-06-21T20:00:00Z",
+  "branch": "main"
+}
