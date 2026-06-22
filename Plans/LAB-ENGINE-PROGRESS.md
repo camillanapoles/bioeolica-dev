@@ -37,7 +37,7 @@ atividade permanece in_progress, próxima NÃO inicia.
 ## ESTADO ATUAL
 
 - **Atividade corrente:** T02 ✅ **CONCLUÍDA 100% (T02.D com T02.D++ VAZIO)** → liberada **T03**
-- **Último commit:** `feat(wal): modelos Pydantic v2 do WAL 100% canônicos + gates permanentes (T02.D)` (sync origin/main após push)
+- **Último commit:** `caaf1eb` (`feat(wal): modelos Pydantic v2 do WAL 100% canônicos + gates permanentes (T02.D)`)
 - **Branch:** `main`
 - **Grafo:** 8799 nodes / 13624 edges / 192 flows (gitnexus auto-update pós-T02)
 - **Stack:** Pydantic v2 ✅ · SQLAlchemy 2.0 ✅ · `ruff`/`mypy`/`bandit` ✅ (instalados no `.venv`). Faltam p/ T03: `alembic`, `pydantic-settings`. Faltam p/ T07: `structlog`. Faltam p/ T10: `typer` (+ entry `[project.scripts] lab-engine`).
