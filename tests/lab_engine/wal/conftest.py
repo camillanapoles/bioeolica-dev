@@ -152,6 +152,18 @@ def _fresh_log_id() -> str:
 
 
 @pytest.fixture
+def canonical_log() -> dict[str, Any]:
+    """Dict cru (wire-format) do log canônico — cópia profunda mutável por teste.
+
+    Para os testes do **validador** (T04), que precisam mutar o input (remover
+    campos, quebrar patterns) antes de chamar ``validate``. Cada teste obtém sua
+    própria cópia — mutações não vazam entre testes. Espelha o ``_CANONICAL_LOG``
+    abaixo (mesma estrutura do builder ``make_log``).
+    """
+    return copy.deepcopy(_CANONICAL_LOG)
+
+
+@pytest.fixture
 def make_log() -> Callable[..., WalLog]:
     """Factory: retorna um ``WalLog`` canônico válido com overrides opcionais.
 

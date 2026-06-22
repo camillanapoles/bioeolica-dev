@@ -33,6 +33,7 @@ dev = [
     "bandit>=1.7",
     "black>=23.0",
     "coverage>=7.3",
+    "hypothesis>=6",
 ]
 test = [
     "pytest>=7.4",

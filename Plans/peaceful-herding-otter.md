@@ -303,6 +303,42 @@ Conforme regras ECC (`~/.claude/rules/ecc/`) e gates CCG:
 - **Decisão:** o store persiste objetos `WalLog` **já validados** pela camada Pydantic (T02 faz `extra="forbid"`). O store **não revalida** schema. `auto_fix` (log_id, `timestamp.created`, INSTRUCTIONS.md L2325) e o gate REJECT explícito (`on_invalid`/`on_unknown_field`) vivem no `validator.py` de **T04**, que enfileira antes de `store.create()`.
 - **Por quê:** separação de concerns — o store é CRUD puro; o garantismo (validação pré-persistência) é do validator.
 
+### D-T04.1 — Validador opera sobre input cru (dict/JSON), NÃO sobre `WalLog` instanciado
+- **Onde:** `INSTRUCTIONS.md` L2325 (`auto_fix`) exige que `auto_fix` (log_id, `timestamp.created`) seja aplicado ANTES da validação.
+- **Decisão:** `validate(raw)` recebe o wire-format cru (dict/str-JSON/bytes-JSON), aplica `auto_fix` no dict, e só então chama `WalLog.model_validate`. Se recebesse `WalLog` já instanciado, a validação Pydantic teria rejeitado antes do `auto_fix` poder agir. O validador é a borda do sistema (recebe o cru que vem do agente/runtime).
+- **Por quê:** fidelidade operacional ao `validation_behavior` (auto_fix precede validação).
+
+### D-T04.2 — `validate` retorna `ValidationResult`, NÃO levanta
+- **Onde:** `INSTRUCTIONS.md` L2322 (`on_invalid`) diz "retornar erros para correção".
+- **Decisão:** `validate()` sempre retorna `ValidationResult` (dataclass frozen: `valid`, `log`, `errors`, `auto_fixes`). O caller (T05 runtime) decide o que fazer com `valid=False` (RETRY com correção, dead-letter, etc.). Levantar forçaria `try/except` em todo callsite.
+- **Por quê:** o contrato diz "retornar" — o validador honra a semântica; não empurra exceção para o caller.
+
+### D-T04.3 — `auto_fix` é conservador: só preenche ausentes, nunca sobrescreve presentes
+- **Onde:** `INSTRUCTIONS.md` L2325 (auto_fix).
+- **Decisão:** `_auto_fix` só age em campos ausentes/vazios (log_id faltante/fora-do-padrão → gera; `timestamp.created` vazio → preenche). **Nunca** sobrescreve valor presente. `timestamp` tz-aware é invariante de T02 — NÃO é auto-fixable (naive datetime presente é deixado para a validação rejeitar, não mascarado).
+- **Por quê:** auto_fix não pode mascarar erros nem inventar dados; só normaliza o trivialmente ausente. Timestamp tz-aware é invariante contratual de T02.
+
+### D-T04.4 — 4 anomalias do auditor (definições operacionais — D4 Rastreabilidade)
+- **Onde:** `INSTRUCTIONS.md` L2001-2006, L2318 (gate D4).
+- **Decisão:** quatro anomalias classificadas pelo `WalAuditor`:
+  - `PENDING_STALE` (L2002/L2004, **explícito**) — `validation_status == PENDING` E `created_at < now - pending_stale_after` (default 24h).
+  - `ORPHAN` (L2002, **explícito**) — `parent_log` não-None E inexistente no store (cadeia quebrada).
+  - `ABANDONED` (L2002, **explícito**) — `PENDING` que é **folha** (sem logs filhos): análise iniciada, nunca retomada. O contrato cita ORPHAN e ABANDONED como distintos sem definir ABANDONED operacionalmente; esta é a definição adotada. Se o contrato precisar formalizar, vira emenda pós-T13.
+  - `SCHEMA_BREACH` (L2001, **implícito**) — payload que falha re-validação Pydantic (drift pós-emenda do schema, corrupção, ingestão externa mal-feita).
+- **Por quê:** o gate D4 exige "zero PENDING>24h" e "nenhum ORPHAN/ABANDONED não resolvido" — as 4 anomalias cobrem o espaço de violação.
+
+### D-T04.5 — Auditor pagina via `select().limit().offset()` (não infla o store)
+- **Decisão:** o auditor carrega todas as rows via paginação interna (`_PAGE_SIZE=500`) em vez de um `list()` monolítico. Robusto a volume crescente do WAL.
+- **Por quê:** o store (D-T03.5) é CRUD puro; o auditor pagina para ser resiliente a escala.
+
+### D-T04.6 — Auditor query `WalLogRow` direto (Session), NÃO `WalRepository.list`
+- **Decisão:** `WalRepository.list()` desserializa via `_rows_to_logs` que **levanta** `ValidationError` em payload inválido — quebraria o auditor ao encontrar um breach. O auditor é camada de **inspeção/diagnóstico** sobre o modelo físico; query as rows direto e re-valida defensivamente (captura o erro → classifica como `SCHEMA_BREACH`).
+- **Por quê:** o auditor não pode morrer ao detectar exatamente o que foi feito para detectar. Camada de inspeção ≠ camada de acesso.
+
+### D-T04.7 — Normaliza `created_at` para tz-aware (assume UTC se naive)
+- **Decisão:** `_as_aware(dt)` retorna `dt.replace(tzinfo=UTC)` se `dt.tzinfo is None`, senão retorna `dt`. Aplicado a `row.created_at` antes de comparar com `stale_cutoff`.
+- **Por quê:** SQLite pode descartar `tzinfo` no round-trip; sem normalização, `naive < aware` levanta `TypeError`. O instante canônico vive no payload JSON (D-T03.1); `created_at` é só índice de filtro — normalizar preserva a semântica.
+
 ### EMENDA-E001 — elevar ranges "0-100%" a `minimum/maximum` formais (de D-T02.1)
 ```
 EMENDA-E001 | Onde: INSTRUCTIONS.md L2289-2298 (quality_metrics D1-D10) |

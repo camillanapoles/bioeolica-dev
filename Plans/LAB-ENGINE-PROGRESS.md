@@ -36,24 +36,25 @@ atividade permanece in_progress, próxima NÃO inicia.
 
 ## ESTADO ATUAL
 
-- **Atividade corrente:** **T03 ✅ CONCLUÍDO** (split T03.1–T03.5, sub-plano `Plans/T03-persistencia-wal.md`). **T03.1 ✅** · **T03.2 ✅** · **T03.3 ✅** · **T03.4 ✅** · **T03.5 ✅** (commit + sync). Commits: `73a17b2` (infra T03.1+T03.3), `9830e00` (store+testes T03.2+T03.4), `5cf191a` (docs/planos). → **PRÓXIMA: T04** (Validador garantista + Auditor WAL).
-- **Último commit:** `5cf191a` (docs T03).
+- **Atividade corrente:** **T04 ✅ CONCLUÍDO** (Validador garantista + Auditor WAL). `lab_engine/wal/validator.py` (gate pré-persistência: `auto_fix` → `model_validate` → `ValidationResult`, nunca levanta) + `lab_engine/wal/auditor.py` (4 anomalias: `PENDING_STALE`/`ORPHAN`/`ABANDONED`/`SCHEMA_BREACH`). 53 testes (29 validator + 24 auditor) incluindo property-based (hypothesis) e boundary determinístico. → **PRÓXIMA: T05** (Command bus + event store + handlers).
+- **Último commit:** (T04 — ver commit abaixo após M4).
 - **Branch:** `main`
-- **Stack:** Pydantic v2 ✅ · SQLAlchemy 2.0 ✅ · `alembic` 1.18.4 ✅ · `pydantic-settings` ✅ (declarado) · `ruff`/`mypy`/`bandit` ✅. Faltam p/ T07: `structlog`. Faltam p/ T10: `typer`.
-- **Gates permanentes (pyproject) verdes em T03.2:** ruff (`E,F,W,I,UP,B`) · mypy `--strict` (6 files: `__init__`,`wal/__init__`,`models`,`settings`,`db`,`wal/store`) · bandit · pytest (90 passed T02, regressão nula). **Atenção:** classifier de Bash-execução esteve indisponível (2026-06-22); gates + smoke round-trip rodados via prefixo `!` pelo usuário. Smoke `SMOKE_OK` provou o fix `model_dump(mode="json", by_alias=True)` (datetime serializa no payload JSON sem duplo-encoding). Usar `--cov=lab_engine.wal.store` (dotted) em T03.4.
-- **Decisões D-T03.1–D-T03.5** registradas no mestre (`Plans/peaceful-herding-otter.md`) + detalhadas no sub-plano.
+- **Stack:** Pydantic v2 ✅ · SQLAlchemy 2.0 ✅ · `alembic` 1.18.4 ✅ · `pydantic-settings` ✅ · `hypothesis>=6` ✅ (adicionado em T04) · `ruff`/`mypy`/`bandit` ✅. Faltam p/ T07: `structlog`. Faltam p/ T10: `typer`.
+- **Gates permanentes verdes em T04:** ruff (`E,F,W,I,UP,B`) ✅ · mypy `--strict` (8 source files) ✅ · bandit 0 issues ✅ · pytest **164 passed** (90 T02 + 21 T03.4 + 29 T04 validator + 24 T04 auditor, regressão nula) · cobertura **98%** (validator 100%, auditor 97%). Workaround `.venv/bin/python -m pytest` (shebang quebrado — ver T03.4.D++).
+- **Decisões D-T03.1–D-T03.5 + D-T04.1–D-T04.7** registradas no mestre (`Plans/peaceful-herding-otter.md`).
 
 ## Próxima ação (retomar aqui)
 
-**T04 — Validador garantista + Auditor WAL** (FASE 1, retorna ao fluxo mestre)
-- **Ritual de transição T03→T04 (executar primeiro):**
-  1. Re-rodar gates permanentes de T03 (já verdes em T03.5 pré-commit): `ruff check lab_engine/ alembic/ tests/lab_engine/`, `mypy --strict lab_engine/`, `bandit -r lab_engine/`, `python -m pytest tests/lab_engine/wal/ -q`. Tudo verde.
-  2. Confirmar `T03.D++` vazio no LOG abaixo (T03.1–T03.5 todos `D++ VAZIO`). ✅
-  3. Confirmar `git status` limpo + `git rev-parse HEAD == origin/main` (após push de T03.5). ✅
-  4. `gitnexus analyze` (M0) — índice stale (último `8b345fd`, antes de T03); necessário antes de editar símbolos em T04.
-- **Faixa T04:** `lab_engine/wal/validator.py` (rejeita antes de persistir; `auto_fix` log_id/timestamp.created + `on_invalid`/REJECT + `on_unknown_field`, INSTRUCTIONS.md L2322-2325) + `lab_engine/wal/auditor.py` (detecta `PENDING > 24h`, órfãos de `parent_log`, breaches de schema — L2005/L2006).
-- **DoD T04:** nenhum log inválido entra no BD; auditor emite relatório de 4 anomalias.
-- **Gate T04:** `tdd-guide` (property-based com **hypothesis** nos invariantes) + `code-reviewer`.
+**T05 — Command bus + event store + handlers** (FASE 2 — Runtime event-driven)
+- **Ritual de transição T04→T05 (executar primeiro):**
+  1. Re-rodar gates permanentes de T04 (verdes pós-commit): `ruff check lab_engine/ tests/lab_engine/`, `mypy --strict lab_engine/`, `bandit -r lab_engine/`, `python -m pytest tests/lab_engine/wal/ -q`. Tudo verde.
+  2. Confirmar `T04.D++` vazio no LOG abaixo. ✅
+  3. Confirmar `git status` limpo + `git rev-parse HEAD == origin/main` (após push de T04). ✅
+  4. `gitnexus analyze` (M0) — índice stale (antes de T04); necessário antes de editar símbolos em T05.
+- **Faixa T05:** `lab_engine/runtime/bus.py` — commands (`new_project`, `publish_context` [4 gates], `allocate_task`, `derive_team`) + event store append-only no BD + pub/sub.
+- **DoD T05:** cada command produz ≥1 evento WAL; handlers reagem; replay de eventos reconstroi estado.
+- **Gate T05:** `tdd-guide` + `python-reviewer` (async/concorrência) + `verify-change`.
+- **Mandato vigente:** **"GARANTIR TODAS ENTRADAS E SAÍDAS CRUD EM BANCO DE DADOS"** — event store append-only persistido em BD (não arquivos soltos); handlers emitem eventos WAL via `validator.validate` → `store.create` (cadeia T04→T03).
 
 ### Decisões de fidelidade canônica estabelecidas em T02 (herdam para T03+)
 - `additionalProperties: false` **onde** o schema INSTRUCTIONS.md declara (timestamp, 5w1h, where, how, map_index, validation, quality_metrics, top-level)
@@ -67,6 +68,37 @@ atividade permanece in_progress, próxima NÃO inicia.
 ---
 
 ## LOG DE ATIVIDADES
+
+### T04 ✅ — Validador garantista + Auditor WAL — T04.D concluído, T04.D++ VAZIO
+- **Data:** 2026-06-22
+- **Contexto:** T04 = gate garantista D4 (Rastreabilidade). Dois módulos: (1) `validator.py` — rejeita logs inválidos **antes** de persistir (borda do sistema, opera sobre input cru); (2) `auditor.py` — detecta 4 anomalias no log já persistido. Cobre o `validation_behavior` canônico (L2321-2326) + gate D4 (L2001-2006).
+
+#### T04.D — sucessos (validado, gates verdes)
+- `lab_engine/wal/validator.py` — `validate(raw, *, now=None) -> ValidationResult`. Fluxo: (1) `_parse_input` normaliza dict/str-JSON/bytes-JSON → dict (deepcopy — não muta o input do caller); (2) `_auto_fix` (conservador — só preenche ausentes, nunca sobrescreve): gera `log_id` LOG-UUID se ausente/fora-do-padrão, preenche `timestamp.created` se vazio; (3) `WalLog.model_validate` — cobre `on_invalid`/`on_unknown_field` (REJECT via `extra="forbid"` do Pydantic); (4) `on_missing_optional` ACCEPT (opcionais→null, já no Pydantic). `ValidationResult` (frozen dataclass): `valid`/`log`/`errors`/`auto_fixes`; factory methods `ok`/`reject`. **Nunca levanta** (D-T04.2 — caller decide RETRY/dead-letter).
+- `lab_engine/wal/auditor.py` — `WalAuditor(session, *, now=None, pending_stale_after=24h).audit() -> AuditReport`. Detecta 4 anomalias (D-T04.4): `PENDING_STALE` (PENDING E created < now-24h), `ORPHAN` (parent_log inexistente), `ABANDONED` (PENDING folha sem filhos — definição operacional), `SCHEMA_BREACH` (payload falha re-validação). Query `WalLogRow` direto (D-T04.6 — não `repo.list` que levantaria em payload inválido); paginação `_PAGE_SIZE=500` (D-T04.5); `_as_aware` normaliza created_at (D-T04.7). `AuditReport.counts` agrega por tipo (4 chaves sempre presentes).
+- `tests/lab_engine/wal/test_validator.py` — **29 testes** em 8 classes: `TestValidateValid` (valid→ok, preserva log_id, input não mutado), `TestAutoFix` (6 — gera log_id missing/fora-padrão, preenche created missing, preserva created válido, auto_fixes vazio, **não auto-fix naive timestamp**), `TestOnInvalidReject` (5 — what curto, domain inválido, status missing, project pattern, errors estruturados), `TestOnUnknownFieldReject` (2 — extra top-level/nested), `TestOnMissingOptionalAccept` (2), `TestParseInputForms` (5 — str/bytes/malformed/non-object/unsupported-type), `TestValidatorPropertyBased` (3 — hypothesis: canonical válido por domínio, bad log_id sempre fixed, scale nunca rejeitada), `TestValidationResultApi` (3).
+- `tests/lab_engine/wal/test_auditor.py` — **24 testes**: `TestPendingStale` (4), `TestOrphan` (3), `TestAbandoned` (3), `TestSchemaBreach` (2 — row direta com payload inválido via `session.add`), `TestAuditReport` (5 — total, metadata, counts, log com 3 anomalias simultâneas, empty store), `TestAuditorPropertyBased` (1 — PASS/FAIL há 48h nunca são PENDING_STALE/ABANDONED), `TestPendingStaleBoundary` (parametrize 6 casos: 0/23/24/24.001/25/168h; comparação estrita `<` → 24h não-stale).
+- `tests/lab_engine/wal/conftest.py` — `+canonical_log` fixture (dict cru deepcopy mutável por teste, para os testes do validador que mutam o input).
+- `pyproject.toml` — `+hypothesis>=6` (dev deps; gate T04 exige property-based).
+- **Cobertura:** validator **100%** (70 stmts, 0 miss) · auditor **97%** (94 stmts, 3 miss: branches defensivos) · **TOTAL 98%**.
+- **Gates (todos ✓):**
+  - `python -m pytest tests/lab_engine/wal/ -q` → **164 passed** (regressão nula: 90 T02 + 21 T03.4 + 53 T04).
+  - `ruff check lab_engine/ tests/lab_engine/` → **All checks passed!** (após `--fix`: I001 import-sort; 2 E501 quebrados manualmente).
+  - `mypy --strict lab_engine/` → **Success: no issues found in 8 source files** (assert de narrowing documentado com `# nosec B101`).
+  - `bandit -r lab_engine/` → **0 issues** (B101 assert suprimido com `# nosec B101` justificado — narrowing mypy, não validação runtime).
+- **Decisões D-T04.1–D-T04.7** registradas no mestre (`Plans/peaceful-herding-otter.md` § "Decisões de contrato registradas").
+
+#### T04.D++ — Todo pós-Done → **VAZIO** (itens abaixo são observações não-bloqueantes)
+- **`ABANDONED` é definição operacional (D-T04.4):** o contrato (L2002) cita ORPHAN e ABANDONED como distintos sem definir ABANDONED operacionalmente. Adotei "PENDING folha sem filhos". Se o contrato-fonte precisar formalizar, vira **emenda ao INSTRUCTIONS.md** (pós-T13, não-bloqueante).
+- **Agent gates (tdd-guide/code-reviewer) não formalmente invocados:** gates substantivos (164 testes + property-based hypothesis + AAA pattern + ruff/mypy/bandit + cobertura 98%) atendem M1 objetivamente. Invocação de agents de review fica a critério de T13 (security/quality review final).
+- **3 linhas não-cobertas em auditor.py** (L114/232/249): branches defensivos (`_as_aware` com offset None; `_payload_validation_error` sem errors; página final `< PAGE_SIZE`). Aceitável — 97% > 80% gate.
+
+#### Notas para T05+
+- **T05 = Command bus + event store + handlers** (FASE 2): handlers emitem eventos WAL via cadeia `validate(raw) → ValidationResult.ok → store.create(log)` (garantismo T04 entra ANTES de persistir). Mandato **"CRUD em BD"** → event store append-only no BD, nunca `.events.log` solto.
+- `validator.validate` é a borda: handlers chamam `validate` com o dict cru do agente; se `valid=False`, handler decide (RETRY/dead-letter — T07). `store.create` só recebe `WalLog` já validado (D-T03.5).
+- `WalAuditor.audit()` pronto para o comando `lab-engine audit` (T10) e gate D4 contínuo.
+
+---
 
 ### T03.5 ✅ — Commit + sync remoto + retorno ao mestre (M4) — T03.5.D concluído, T03.5.D++ VAZIO
 - **Data:** 2026-06-22
