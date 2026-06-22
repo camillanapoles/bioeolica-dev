@@ -36,8 +36,8 @@ atividade permanece in_progress, próxima NÃO inicia.
 
 ## ESTADO ATUAL
 
-- **Atividade corrente:** **T05 🚧 em curso — T05.1 ✅** (Event store + event bus). `runtime/events.py` (`EventStore` projeção sobre wal_logs + `EventBus` pub/sub) com 17 testes e **100% cobertura**; gates ruff/mypy --strict/bandit verdes. **Próximo: T05.2** (`runtime/bus.py`: `Command` Pydantic + `CommandBus` + `CommandResult`). Split T05.1-T05.5 (3/5 pendentes). T04 ✅.
-- **Último commit:** `fd8ed36` (início T05 + D-T05.1); T05.1 (código) a commitar abaixo (M4).
+- **Atividade corrente:** **T05 🚧 em curso — T05.1 ✅, T05.2 ✅** (Event store/bus + Command bus). `runtime/events.py` (EventStore+EventBus, 17 testes 100%) + `runtime/bus.py` (`Command`/`CommandBus`/`CommandResult`, 19 testes **100% cobertura**); gates ruff/mypy --strict/bandit verdes. **Próximo: T05.3** (handlers 4 commands: `new_project`, `publish_context` [4 gates], `allocate_task`, `derive_team`). Split T05.1-T05.5 (2/5 pendentes). T04 ✅.
+- **Último commit:** `c1a8f33` (T05.1 ✅ — event store + event bus, projeção do WAL). T05.2 (bus.py) a commitar abaixo (M4).
 - **Branch:** `main`
 - **Stack:** Pydantic v2 ✅ · SQLAlchemy 2.0 ✅ · `alembic` 1.18.4 ✅ · `pydantic-settings` ✅ · `hypothesis>=6` ✅ (adicionado em T04) · `ruff`/`mypy`/`bandit` ✅. Faltam p/ T07: `structlog`. Faltam p/ T10: `typer`.
 - **Gates permanentes verdes em T04:** ruff (`E,F,W,I,UP,B`) ✅ · mypy `--strict` (8 source files) ✅ · bandit 0 issues ✅ · pytest **164 passed** (90 T02 + 21 T03.4 + 29 T04 validator + 24 T04 auditor, regressão nula) · cobertura **98%** (validator 100%, auditor 97%). Workaround `.venv/bin/python -m pytest` (shebang quebrado — ver T03.4.D++).
@@ -84,8 +84,8 @@ atividade permanece in_progress, próxima NÃO inicia.
 | Sub | Escopo | Gate | Status |
 |---|---|---|---|
 | **T05.1** | `runtime/events.py` — `EventStore` (stream sobre `wal_logs`) + `EventBus` (pub/sub in-proc) | tdd + python | ✅ |
-| **T05.2** | `runtime/bus.py` — `Command` (Pydantic frozen) + `CommandBus` (dispatch + registry) + `CommandResult` | tdd + python | 🚧 corrente |
-| **T05.3** | Handlers 4 commands: `new_project`, `publish_context` [4 gates], `allocate_task`, `derive_team` | tdd + security | ⏳ |
+| **T05.2** | `runtime/bus.py` — `Command` (Pydantic frozen) + `CommandBus` (dispatch + registry) + `CommandResult` | tdd + python | ✅ |
+| **T05.3** | Handlers 4 commands: `new_project`, `publish_context` [4 gates], `allocate_task`, `derive_team` | tdd + security | 🚧 corrente |
 | **T05.4** | `Projection` + `replay(project)` — reconstroi `ProjectState` agregado; idempotência | tdd + review | ⏳ |
 | **T05.5** | Gates verdes + cobertura ≥80% + commit + sync (M4) → retorna ao mestre | verify-quality | ⏳ |
 
@@ -98,6 +98,23 @@ atividade permanece in_progress, próxima NÃO inicia.
 #### T05.1.D++ (débito pós-done — NÃO bloqueia T05.2)
 - **D++ (menor, design):** `conftest` do runtime duplica `engine`/`session`/`repo` do conftest do wal (DRY parcial — optei por robustez em rootdir mode, sem `__init__.py`). Extraível p/ `tests/lab_engine/conftest.py` pai no futuro. Rastreado, não-bloqueante.
 - **D++ (rastreio):** `EventBus.publish` usa `except Exception` amplo (intencional — resiliência); documentado no docstring. bandit não sinalizou.
+
+#### Decisões D-T05.2 — Command bus (CQRS-lite)
+- **D-T05.2.1** — `Command` é Pydantic v2 `frozen`/`extra="forbid"`; `command_type` pattern `^CMD-` — **distinto** do `event_type` `^TASK-` do WAL (command = intenção/input; evento = fato persistido). Reusa `TZAwareDatetime` de `wal.models` (garantismo tz-aware compartilhado, DRY).
+- **D-T05.2.2** — `command_id`/`timestamp` auto-gerados (UUID4 hex / agora-UTC) mas **overrideable** — correlação explícita (A2A T08) + testes determinísticos sem esconder rastreabilidade.
+- **D-T05.2.3** — `CommandBus.register` **levanta** `CommandAlreadyRegisteredError` em duplicata. Registro ambíguo = bug de config (mais garantista que overwrite silencioso).
+- **D-T05.2.4** — `CommandBus.dispatch` **não propaga** exceções de handler → `CommandResult(success=False)` + log; handler ausente → failure (sem raise). Pré-figura T07 (resiliência).
+- **D-T05.2.5** — `CommandResult.events: list[WalLog]` é retorno semântico; a **persistência** é do handler (via `EventStore` em T05.3) — bus é despachante puro (separation of concerns).
+
+#### T05.2.D (sucessos validados)
+- 2 arquivos: `lab_engine/runtime/bus.py` (`Command` + `CommandResult` + `CommandHandler` + `CommandBus` + `CommandAlreadyRegisteredError`), `tests/lab_engine/runtime/test_bus.py` (19 testes AAA).
+- `Command` frozen, `command_type` `^CMD-`, reusa `TZAwareDatetime`; `CommandResult` frozen com `events: list[WalLog]`.
+- `CommandBus.register` levanta em duplicata; `dispatch` captura exceção → failure + log (`lab_engine.runtime.bus`); handler ausente → failure.
+- Gates: ruff ✅ · mypy --strict ✅ (1 file, no issues) · bandit clean ✅ · pytest **19/19 ✅** · cobertura **100%** em `bus.py` (45 stmts, 0 miss). `detect_changes`: risk low, 0 símbolos/processos existentes afetados (só adiciona).
+
+#### T05.2.D++ (débito pós-done — NÃO bloqueia T05.3)
+- **D++ (rastreio):** `CommandBus.dispatch` usa `except Exception` amplo (intencional — resiliência D-T05.2.4, pré-figura T07); documentado no docstring. bandit não sinalizou (mesmo pattern do `EventBus`).
+- **D++ (design, futuro):** `events: list[WalLog]` é `list` mutável em modelo `frozen` — Pydantic bloqueia reassign do atributo mas não mutação interna da lista. Inofensivo (handler constrói e não muta); alinhado ao pattern de `models.py` (`child_logs: list[str]` frozen). Sem ação.
 
 ---
 
