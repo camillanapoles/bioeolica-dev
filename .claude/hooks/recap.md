@@ -22,6 +22,10 @@ bioeolica-dev2 = **LAB-ENGINE**: runtime multi-agente garantista SOTA 2026 (Pyth
 - **T0x.D / T0x.D++:** cada atividade splitada em D (sucessos validados) e D++ (débitos pós-done). SÓ avança T(x)→T(x+1) com `D++` vazio ou itens explicitamente rastreados como Emenda. NUNCA avançar percebendo gap implícito.
 - **Fidelidade ao contrato:** NUNCA inventar contrato (ranges, constraints, campos). Se o `INSTRUCTIONS.md` precisa mudar, vira **EMENDA-E0xx** rastreada (não-bloqueante pós-T13).
 - **WAL garantista:** log rejeitado ANTES de persistir (validator). CRUD em BD (SQLAlchemy), nunca arquivos soltos. Replay/event-sourcing.
+- **PROTOCOLO SOTA validate→debit (enforcement estrutural do D++):** cada atividade T0x TERMINA com VALIDATE (re-roda gates ruff/mypy/bandit/pytest + escaneia `T0x.D++`). **PASS** (gates verdes + D++ vazio/rastreado) → avança `T(x)→T(x+1)` via ritual. **NOT PASS** → NÃO avança; gera **task `T0x.DebitN` no harness TaskList** (com `blockedBy` real, NÃO markdown solto), descreve o débito, decide dono/data, e só prossegue após resolvê-lo. O ritual de transição de 4 passos é o gate automático — passou prossegue, não passou fica. Débito = bola de neve se não resolvido.
+
+## GOVERNANÇA ECC (plano original gerido por ECC, não substituído)
+O LAB-ENGINE segue o plano `Plans/peaceful-herding-otter.md` (T01-T13) e mandatos M0-M4 **originalmente definidos**, com o ECC fornecendo o **harness de gestão**: gates (tdd-guide, python-reviewer, code-reviewer, security-reviewer, verify-change/quality/security), TaskList backend (cadeia blockedBy T01-T13), e o protocolo validate→debit acima. **Persistência ao plano original + disciplina ECC > velocidade.**
 
 ## MANDATOS PERMANENTES DO USUÁRIO (vigentes, verbatim)
 - **JAMAIS setar variáveis em scripts** (quebra reprodutibilidade) — config via env/`.env` lida por `lab_engine.settings.Settings` (prefixo `LAB_ENGINE_`).

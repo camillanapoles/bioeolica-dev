@@ -278,6 +278,19 @@ atividade permanece in_progress, próxima NÃO inicia.
 - `auto_fix` (log_id/timestamp.created, L2325) fica para **T04** (`validator.py`).
 - **EMENDA-E001** (ranges D-campos) — rastreada, pós-T13. Não bloqueia T03-T13.
 
+### GOV-2026-06-22 — Governança ECC: continuidade assegurada + clean corruption + protocolo SOTA validate→debit
+- **Data:** 2026-06-22
+- **Commits:** `c0d5596` (Camada 0) + este (`.gitignore` clean + `alembic/README` + `recap.md` SOTA).
+- **Feito (atividade de GOVERNANÇA, não atividade do plano T01-T13):**
+  - **Camada 0 (defesa de continuidade):** hook `UserPromptSubmit` (`lab-engine-recap.sh` → `recap.md`) injeta contexto canônico em TODO prompt; hook `PreToolUse Write|Edit|MultiEdit` (`scope-guard-prompt.txt`) bloqueia fuga de escopo (`specs/`, `src/cadreport`, `workspace/`, `instruments/`). Portável via `$CLAUDE_PROJECT_DIR`.
+  - **Retificação CLAUDE.md:** bloco SPECKIT aponta ao plano ativo `Plans/peaceful-herding-otter.md` + marca `specs/012-cad-report/plan.md` como OUTRO escopo.
+  - **Clean corruption (cascas de banana):** `.gitignore` com padrões de ruído de OUTROS ferramentais/contextos (AIDER, `.thinking_llm`, `.openclaude`, `analys_state`, `.archives`, `docs/audit`, `docs/superpowers`, `*.bak`, `continue.txt`, docs genéricos raiz). **Gitignore-only (reversível): NÃO apaga do disco, só limpa `git status` para não induzir fuga em sessões futuras.**
+  - **Protocolo SOTA validate→debit (enforcement estrutural do D++):** documentado em `.claude/hooks/recap.md` (injetado em todo prompt). Cada T0x TERMINA com VALIDATE (gates + D++ scan); **PASS → avança**; **NOT PASS → gera task `T0x.DebitN` no harness TaskList** com `blockedBy` real (não markdown). Operacionaliza M1/M2 como checklist automático.
+  - Commitado `alembic/README` (meu, T03.3 boilerplate, órfão). Memória (`lab-engine-project.md`) atualizada para T04 ✅.
+- **GOV.D++ (débito de governança, rastreado):** ⚠️ **Hook caveat** — o settings-watcher do Claude Code só observa `.claude/` cujo `settings.json` era não-vazio no início da sessão. Hook criado DURANTE esta sessão → **não fire até o usuário abrir `/hooks` (reload) ou restartar**. **Não bloqueia T05** (recap via memória + PROGRESS cobre), mas o enforcement anti-fuga fica offline até reload. **Dono/data: usuário (abrir `/hooks` uma vez). Não-bloqueante.**
+- **Gate:** N/A (governança/higiene, sem edição de símbolos de código → sem M0 impact).
+- **Estado do plano:** T04 permanece ✅; **T05 permanece a próxima pendente**. Plano original preservado, agora gerido por harness ECC.
+
 ### T01 ✅ — Rename `workspaces/`→`instruments/` + contrato LAB-ENGINE (FASE 0)
 - **Data:** 2026-06-22
 - **Commit:** `2d91da6` (após rebase sobre 8 commits remotos)

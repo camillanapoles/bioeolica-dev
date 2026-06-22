@@ -52,3 +52,31 @@ ${HOME}/
 reports/
 pytest_out/
 problem_out/
+
+# ── LAB-ENGINE: cascas de banana (ruido de OUTROS ferramentais/contextos) ──
+# Nao sao artefatos do LAB-ENGINE. Gitignore-only: NAO apaga do disco, so limpa
+# o `git status` para nao induzir fuga de escopo/confusao de plano em sessoes futuras.
+# Ferramental AIDER (outro agent CLI)
+.aider*
+AIDER.md
+# Outros ferramentais / estado de agentes
+.thinking_llm.txt
+.openclaude/
+analys_state/
+.archives/
+docs/audit/
+docs/superpowers/
+# Backups e arquivos de continuidade de outros fluxos (nomes que confundem)
+*.bak
+continue.txt
+# Docs de outros contextos na raiz (nao-LAB-ENGINE) — nomes genericos perigosos
+ANALISE-INICIAL.md
+AUDITORIA-INICIAL.md
+ARCHITECTURE.md
+CONVENTIONS.md
+MANUAL_COMPLETO.md
+REQUISITOS.md
+USAGE_GUIDE.md
+TODO.md
+eng_requisitos.md
+docs/REQUISITOS_UNIFICADOS.md
