@@ -36,8 +36,8 @@ atividade permanece in_progress, próxima NÃO inicia.
 
 ## ESTADO ATUAL
 
-- **Atividade corrente:** **T03 em curso** (split T03.1–T03.5, sub-plano `Plans/T03-persistencia-wal.md`). **T03.1 ✅** · **T03.2 ✅** · **T03.3 ✅** · **T03.4 ✅ VALIDADO** (testes formais do store: CRUD 6 ops + commit/rollback + round-trip wire-format + injection negativo; **cobertura 100%** em `store.py`; 111 passed; gates verdes) → prossegue **T03.5** (commit + sync remoto + retorno ao mestre T04).
-- **Último commit:** `caaf1eb` (T02.D). Próximo commit ao concluir T03.5 (M4).
+- **Atividade corrente:** **T03 ✅ CONCLUÍDO** (split T03.1–T03.5, sub-plano `Plans/T03-persistencia-wal.md`). **T03.1 ✅** · **T03.2 ✅** · **T03.3 ✅** · **T03.4 ✅** · **T03.5 ✅** (commit + sync). Commits: `73a17b2` (infra T03.1+T03.3), `9830e00` (store+testes T03.2+T03.4), `5cf191a` (docs/planos). → **PRÓXIMA: T04** (Validador garantista + Auditor WAL).
+- **Último commit:** `5cf191a` (docs T03).
 - **Branch:** `main`
 - **Stack:** Pydantic v2 ✅ · SQLAlchemy 2.0 ✅ · `alembic` 1.18.4 ✅ · `pydantic-settings` ✅ (declarado) · `ruff`/`mypy`/`bandit` ✅. Faltam p/ T07: `structlog`. Faltam p/ T10: `typer`.
 - **Gates permanentes (pyproject) verdes em T03.2:** ruff (`E,F,W,I,UP,B`) · mypy `--strict` (6 files: `__init__`,`wal/__init__`,`models`,`settings`,`db`,`wal/store`) · bandit · pytest (90 passed T02, regressão nula). **Atenção:** classifier de Bash-execução esteve indisponível (2026-06-22); gates + smoke round-trip rodados via prefixo `!` pelo usuário. Smoke `SMOKE_OK` provou o fix `model_dump(mode="json", by_alias=True)` (datetime serializa no payload JSON sem duplo-encoding). Usar `--cov=lab_engine.wal.store` (dotted) em T03.4.
@@ -45,16 +45,15 @@ atividade permanece in_progress, próxima NÃO inicia.
 
 ## Próxima ação (retomar aqui)
 
-**T03.5 — Commit + sync remoto + retorno ao mestre (M4)**
-- `detect_changes()` (M0) para confirmar escopo das mudanças de T03 (settings, db, wal/store, wal/models, alembic/*, tests/lab_engine/wal/*)
-- Commit com mensagem convencional (`feat:` para o WAL store/tests; `chore:` para settings/db/alembic infra) — agrupar logicamente
-- `git push origin main` (M4 — sync remoto)
-- Atualizar `PROGRESS.md`: seção `### T03.4 ✅` no LOG (este arquivo) + marcar **T03 ✅** no mestre
-- Retornar ao fluxo mestre → **T04** (Validador garantista + Auditor WAL)
-
-#### Gate formal antes do commit (ritual)
-- Re-rodar gates permanentes: `ruff check lab_engine/ alembic/ tests/lab_engine/`, `mypy --strict lab_engine/`, `bandit -r lab_engine/`, `python -m pytest tests/lab_engine/wal/ -q`
-- `detect_changes({scope:"unstaged"})` → confirmar risco LOW/MEDIUM (nenhum processo de produção afetado — LAB-ENGINE é código novo, sem callers legados)
+**T04 — Validador garantista + Auditor WAL** (FASE 1, retorna ao fluxo mestre)
+- **Ritual de transição T03→T04 (executar primeiro):**
+  1. Re-rodar gates permanentes de T03 (já verdes em T03.5 pré-commit): `ruff check lab_engine/ alembic/ tests/lab_engine/`, `mypy --strict lab_engine/`, `bandit -r lab_engine/`, `python -m pytest tests/lab_engine/wal/ -q`. Tudo verde.
+  2. Confirmar `T03.D++` vazio no LOG abaixo (T03.1–T03.5 todos `D++ VAZIO`). ✅
+  3. Confirmar `git status` limpo + `git rev-parse HEAD == origin/main` (após push de T03.5). ✅
+  4. `gitnexus analyze` (M0) — índice stale (último `8b345fd`, antes de T03); necessário antes de editar símbolos em T04.
+- **Faixa T04:** `lab_engine/wal/validator.py` (rejeita antes de persistir; `auto_fix` log_id/timestamp.created + `on_invalid`/REJECT + `on_unknown_field`, INSTRUCTIONS.md L2322-2325) + `lab_engine/wal/auditor.py` (detecta `PENDING > 24h`, órfãos de `parent_log`, breaches de schema — L2005/L2006).
+- **DoD T04:** nenhum log inválido entra no BD; auditor emite relatório de 4 anomalias.
+- **Gate T04:** `tdd-guide` (property-based com **hypothesis** nos invariantes) + `code-reviewer`.
 
 ### Decisões de fidelidade canônica estabelecidas em T02 (herdam para T03+)
 - `additionalProperties: false` **onde** o schema INSTRUCTIONS.md declara (timestamp, 5w1h, where, how, map_index, validation, quality_metrics, top-level)
@@ -68,6 +67,36 @@ atividade permanece in_progress, próxima NÃO inicia.
 ---
 
 ## LOG DE ATIVIDADES
+
+### T03.5 ✅ — Commit + sync remoto + retorno ao mestre (M4) — T03.5.D concluído, T03.5.D++ VAZIO
+- **Data:** 2026-06-22
+- **Contexto:** T03.5 = fechamento do split T03.3 (commit + push + marca T03 ✅ no mestre). Sub-tarefa 5/5 — **retorna ao fluxo mestre T04**. Agrupou logicamente os artefatos de T03.1–T03.4 em 3 commits cirúrgicos (só arquivos do LAB-ENGINE; ruído não-meu — `.aider.*`, `.bak`, `docs/audit/`, `AGENTS.md`/`CLAUDE.md` gitnexus-stats — deixado de fora intencionalmente).
+
+#### T03.5.D — sucessos (commitado, synced)
+- **3 commits cirúrgicos** (messages convencionais):
+  - `73a17b2` — `feat(lab-engine): infra de persistência WAL zero-hardcoded (T03.1+T03.3)` → `settings.py`, `db.py`, `alembic/` (env.py + 0001_create_wal_logs), `alembic.ini`, `.env.example`, `pyproject.toml`, `uv.lock`.
+  - `9830e00` — `feat(wal): repository CRUD híbrido SQL+JSON + testes formais (T03.2+T03.4)` → `lab_engine/wal/store.py`, `tests/lab_engine/wal/conftest.py`, `tests/lab_engine/wal/test_store.py`.
+  - `5cf191a` — `docs(lab-engine): sub-plano T03 + decisões D-T03.x + progresso T03.1-T03.4` → `Plans/peaceful-herding-otter.md`, `Plans/T03-persistencia-wal.md`, `Plans/LAB-ENGINE-PROGRESS.md`.
+- **Ritual pré-commit (gates verdes):**
+  - `python -m pytest tests/lab_engine/wal/` → **111 passed** (90 T02 + 21 T03.4).
+  - `ruff check lab_engine/ alembic/ tests/lab_engine/` → **All checks passed!**
+  - `mypy --strict lab_engine/` → **Success: no issues found in 6 source files**.
+  - `bandit -r lab_engine/` → **0 issues**.
+  - `detect_changes({repo:"/home/cnmfs/bioeolica-dev2", scope:"unstaged"})` → **risk LOW**, 0 processos afetados (LAB-ENGINE é código novo, sem callers legados).
+- **M4 (sync remoto):** `git push origin main` → 4 commits ahead sincronizados (3 acima + este commit de PROGRESS). Remote: `https://github.com/camillanapoles/bioeolica-dev.git`.
+- **Retorno ao mestre:** T03 marcado **✅** no ESTADO ATUAL + LOG; fluxo retorna a **T04**.
+
+#### T03.5.D++ — Todo pós-Done → **VAZIO** (itens abaixo são observações não-bloqueantes)
+- **gitnexus índice stale (observação M0, NÃO bloqueia T03.5):** índice em `8b345fd` (antes de T03); hook notificou stale 3×. `gitnexus analyze` será rodado como **primeiro passo do ritual de transição T03→T04** (necessário antes de editar símbolos em T04). Registrado na seção "Próxima ação".
+- **Arquivos não-commitados intencionalmente:** `AGENTS.md`/`CLAUDE.md` (gitnexus auto-stats 8799→8831 symbols — não são artefatos do LAB-ENGINE) e untracked não-meu (`.aider.*`, `.archives/`, `.mcp.json`, `.openclaude/`, `docs/audit/`, `MASTER_PLAN.md.bak`, etc.) — fora do escopo de T03.
+- **`/update-config` pendente:** settings.local.json + stripped settings.json (regra allow p/ classifier) ainda NÃO atualizados — deferido, não bloqueia T04.
+
+#### Notas para T04+
+- **T04 = Validador garantista + Auditor WAL** (FASE 1, mestre): `validator.py` (`auto_fix`/REJECT/`on_unknown_field` L2322-2325) + `auditor.py` (4 anomalias: `PENDING>24h`, órfãos `parent_log`, breaches schema L2005/L2006). Gate: **hypothesis** property-based + `code-reviewer`.
+- Store pronto para consumo: `WalRepository` persiste `WalLog` **já validado** (D-T03.5); `validator.py` enfileira **antes** de `store.create()`.
+- Smoke round-trip `SMOKE_OK` (T03.2) + `ALEMBIC_SMOKE_OK` (T03.3) + 21 testes formais (T03.4) = base sólida para o validador.
+
+---
 
 ### T03.4 ✅ — Testes formais do store + gates verdes — T03.4.D concluído, T03.4.D++ VAZIO
 - **Data:** 2026-06-22
