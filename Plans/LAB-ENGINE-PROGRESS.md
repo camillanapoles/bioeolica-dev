@@ -37,7 +37,7 @@ atividade permanece in_progress, próxima NÃO inicia.
 ## ESTADO ATUAL
 
 - **Atividade corrente:** T02 ✅ CONCLUÍDA → próxima = **T03**
-- **Último commit:** (a seguir — `feat(wal): modelos Pydantic v2 do WAL (T02)`)
+- **Último commit:** `6fd7330` (`feat(wal): modelos Pydantic v2 do WAL (T02)`, sync origin/main)
 - **Branch:** `main`
 - **Grafo:** 8567 nodes / 13387 edges / 192 flows (gitnexus auto-update pós-T02)
 - **Stack:** Pydantic v2 ✅ (em pyproject). Faltam p/ T03+: `alembic`, `pydantic-settings` (SQLAlchemy 2.0 já presente). Faltam p/ T07+: `structlog`. Faltam p/ T10: `typer` (+ entry `[project.scripts] lab-engine`).
