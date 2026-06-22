@@ -82,13 +82,17 @@ Guias para Abstract, Introduction, Related Work, Method, Experiments, Conclusion
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at specs/012-cad-report/plan.md
+at Plans/peaceful-herding-otter.md (LAB-ENGINE, T01-T13). Checkpoint
+persistente do progresso: Plans/LAB-ENGINE-PROGRESS.md. Contrato canônico:
+docs/LAB-ENGINE-ARCHITECTURE.md + INSTRUCTIONS.md.
+NOTA: specs/012-cad-report/plan.md é plano de OUTRO escopo (pipeline
+CAD+REPORT em src/cadreport/) — não é o plano do LAB-ENGINE.
 <!-- SPECKIT END -->
 
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **bioeolica-dev** (8799 symbols, 13624 relationships, 192 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **bioeolica-dev** (8998 symbols, 13881 relationships, 195 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > Index stale? Run `node .gitnexus/run.cjs analyze` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? `npx gitnexus analyze` (npm 11 crash → `npm i -g gitnexus`; #1939).
 

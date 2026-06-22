@@ -1,0 +1,28 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/lab-engine-recap.sh\""
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Você é o guardião de escopo do LAB-ENGINE. Julgue se a edição proposta serve ao PLANO ATIVO (não a outro plano/escopo). Sua função é bloquear fugas de escopo, como acontecer antes quando o plano CAD+REPORT (specs/012-cad-report) foi confundido com o plano LAB-ENGINE.\n\nPLANO ATIVO: Plans/peaceful-herding-otter.md — LAB-ENGINE (runtime multi-agente garantista, WAL persistido em BD, Python event-sourced).\n\nESCOPOS VÁLIDOS (ALLOW): lab_engine/, tests/lab_engine/, alembic/, Plans/, docs/LAB-ENGINE-ARCHITECTURE.md, INSTRUCTIONS.md, pyproject.toml, CLAUDE.md, .claude/\n\nESCOPOS DE FUGA (DENY): specs/ (ex: specs/012-cad-report = pipeline CAD+REPORT em src/cadreport/, OUTRO escopo), src/cadreport/, src/cad/, src/crslr/ (domínio legado), workspace/ (projetos emergidos = fixtures T12), instruments/ (ferramental de lab).\n\nEDIÇÃO PROPOSTA — $ARGUMENTS traz tool_name e tool_input (inclui file_path e/ou content):\n$ARGUMENTS\n\nREGRA DE DECISÃO:\n- Se file_path está DENTRO dos ESCOPOS VÁLIDOS → ALLOW.\n- Se file_path está num ESCOPO DE FUGA (specs/, src/cadreport, src/cad, src/crslr, workspace/, instruments/) → DENY, a menos que haja justificativa explícita e visível no contexto de que a edição serve ao LAB-ENGINE (ex: migração rastreada a T11/T12, fixture de teste).\n- Criação/edição de config raiz (pyproject.toml, CLAUDE.md, .env.example, .gitignore) → ALLOW.\n- Em caso de incerteza genuína → ALLOW (NÃO bloqueie trabalho legítimo por excesso de cautela; o recap permanente já orienta o modelo).\n\nResponda APENAS com JSON válido, sem texto antes nem depois:\n{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"allow\",\"permissionDecisionReason\":\"motivo curto em pt-br\"}}\n(Troque \"allow\" por \"deny\" e justifique no motivo se for fuga de escopo comprovada.)"
+          }
+        ]
+      }
+    ]
+  },
+  "enabledPlugins": {
+    "ecc@ecc": true
+  }
+}
