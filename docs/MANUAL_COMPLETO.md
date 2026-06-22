@@ -17,7 +17,7 @@
 8. [Benchmarks Analíticos](#8-benchmarks-analíticos)
 9. [Cobertura de Testes por Domínio](#9-cobertura-de-testes-por-domínio)
 10. [Instalação e Dependências](#10-instalação-e-dependências)
-11. [Fluxo de Dados entre Workspaces](#11-fluxo-de-dados-entre-workspaces)
+11. [Fluxo de Dados entre Workspaces](#11-fluxo-de-dados-entre-instruments)
 12. [O que Não Foi Implementado](#12-o-que-não-foi-implementado)
 
 ---
@@ -56,9 +56,9 @@
 
 | Workspace | Pacote PIP | Import Python | Módulos | Testes |
 |-----------|-----------|---------------|---------|--------|
-| `workspaces/physics-m3` | `physics-m3` | `from physics_m3.*` | 41 | ~713 |
-| `workspaces/cad-cae-platform` | `cad-cae-platform` | `from cad_cae.*` | 6 | 63 |
-| `workspaces/kdi-m3-bridge` | `kdi-m3-bridge` | `from kdi_m3.*` | 7 | 63 |
+| `instruments/physics-m3` | `physics-m3` | `from physics_m3.*` | 41 | ~713 |
+| `instruments/cad-cae-platform` | `cad-cae-platform` | `from cad_cae.*` | 6 | 63 |
+| `instruments/kdi-m3-bridge` | `kdi-m3-bridge` | `from kdi_m3.*` | 7 | 63 |
 
 ### Dependências Externas por Workspace
 
@@ -783,7 +783,7 @@ kdi-m3-bridge (acoplamento)
     │                    │ imports: fluid_dynamics, thermodynamics,
     │                    │          electromechanical, structural_analysis
     │                    │
-    └──────── imports via pip install -e workspaces/physics-m3
+    └──────── imports via pip install -e instruments/physics-m3
              (nenhum importlib.util.spec_from_file_location)
 
 [cad-cae-platform] ←── auto-contido (importa apenas numpy/scipy)
@@ -913,7 +913,7 @@ Validação: Cp windward=0.8, leeward h/b, sidewall=-0.7, cilíndrico por Re
 ### Instalação Mínima
 
 ```bash
-pip install -e workspaces/physics-m3 -e workspaces/cad-cae-platform -e workspaces/kdi-m3-bridge
+pip install -e instruments/physics-m3 -e instruments/cad-cae-platform -e instruments/kdi-m3-bridge
 make test-quick  # 46 testes (benchmarks + VVV)
 ```
 

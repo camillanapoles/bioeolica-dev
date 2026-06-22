@@ -26,7 +26,7 @@
 ## File Structure
 
 ```
-workspaces/kdi-m3-bridge/
+instruments/kdi-m3-bridge/
 ├── modules/
 │   ├── kdi_macro.py          ← C7: Macro-scale KDI linkage
 │   ├── kdi_meso.py           ← C8: Meso-scale KDI linkage

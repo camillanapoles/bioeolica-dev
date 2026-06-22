@@ -9,8 +9,8 @@
 ## Setup
 
 ```bash
-# Install workspaces as editable packages
-pip install -e workspaces/physics-m3 -e workspaces/cad-cae -e workspaces/kdi-m3
+# Install instruments as editable packages
+pip install -e instruments/physics-m3 -e instruments/cad-cae -e instruments/kdi-m3
 
 # No sudo required, no PYTHONUTF8 required
 ```
@@ -30,21 +30,21 @@ print('Cross-workspace imports: ✅')
 
 ### Scenario 2: Benchmark Validation
 ```bash
-cd workspaces/physics-m3
+cd instruments/physics-m3
 python -m pytest tests/test_benchmarks/ -v
 ```
 **Expected**: All analytic benchmarks PASS with error < 5% (fine mesh).
 
 ### Scenario 3: VVV C11 Certification
 ```bash
-cd workspaces/physics-m3
+cd instruments/physics-m3
 python -m pytest tests/test_vvv_multiscale/ -v
 ```
 **Expected**: 6 criteria all PASS, overall PASS, metrics quantified.
 
 ### Scenario 4: CI Pipeline (local dry-run)
 ```bash
-pip install -e workspaces/*
+pip install -e instruments/*
 python -m pytest --tb=short --cov
 ```
 **Expected**: No PYTHONUTF8 warnings, no sudo calls, no importlib hacks.

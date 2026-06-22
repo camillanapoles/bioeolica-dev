@@ -19,23 +19,23 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install workspaces
+      - name: Install instruments
         run: |
-          pip install -e workspaces/physics-m3 -e workspaces/cad-cae-platform -e workspaces/kdi-m3-bridge
+          pip install -e instruments/physics-m3 -e instruments/cad-cae-platform -e instruments/kdi-m3-bridge
           pip install pytest pytest-cov
 
       - name: Quick tests (benchmarks + VVV)
         run: |
-          cd workspaces/physics-m3 && python -m pytest tests/test_benchmarks/ tests/test_vvv_multiscale/ -v --tb=short
+          cd instruments/physics-m3 && python -m pytest tests/test_benchmarks/ tests/test_vvv_multiscale/ -v --tb=short
 
       - name: Full physics-m3 suite
         run: |
-          cd workspaces/physics-m3 && python -m pytest tests/ -v --tb=short -p no:xdist
+          cd instruments/physics-m3 && python -m pytest tests/ -v --tb=short -p no:xdist
 
       - name: CAD-CAE platform tests
         run: |
-          cd workspaces/cad-cae-platform && python -m pytest tests/ -v --tb=short -p no:xdist
+          cd instruments/cad-cae-platform && python -m pytest tests/ -v --tb=short -p no:xdist
 
       - name: KDI bridge tests
         run: |
-          cd workspaces/kdi-m3-bridge && python -m pytest tests/ -v --tb=short
+          cd instruments/kdi-m3-bridge && python -m pytest tests/ -v --tb=short

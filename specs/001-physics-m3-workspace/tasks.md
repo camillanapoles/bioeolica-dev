@@ -7,7 +7,7 @@ description: "Task list for TopOpt Avançada — 3D SIMP topology optimization w
 
 **Input**: FDC-U analysis identified O1 — TopOpt Avançada as best production route
 
-**Prerequisites**: spec.md (001-physics-m3-workspace), existing 30 modules at workspaces/physics-m3/
+**Prerequisites**: spec.md (001-physics-m3-workspace), existing 30 modules at instruments/physics-m3/
 
 **Tests**: pytest — each task generates test file alongside module
 

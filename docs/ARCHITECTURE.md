@@ -114,7 +114,7 @@ O sistema segue a metodologia M³ do KDI:
 ### Estrutura de Diretórios
 
 ```
-├── workspaces/
+├── instruments/
 │   ├── physics-m3/           # 34 módulos de engenharia
 │   │   ├── modules/          # Código fonte
 │   │   ├── tests/            # 675+ testes
@@ -380,7 +380,7 @@ Passo a passo no notebook:
 #### Modo 2: Dashboard Streamlit
 
 ```bash
-cd workspaces/kdi-m3-bridge
+cd instruments/kdi-m3-bridge
 streamlit run app/app.py
 ```
 
@@ -390,7 +390,7 @@ Abas: Config → Macro → Meso → Micro → Report
 
 ```python
 import sys, importlib.util as u
-_PROJ = "/caminho/para/workspaces"
+_PROJ = "/caminho/para/instruments"
 
 # Import de qualquer módulo
 def imp(rel, name):
@@ -413,7 +413,7 @@ print(result["environment"]["wind_pressure_kPa"])
 #### Modo 4: CLI (physics-m3)
 
 ```bash
-cd workspaces/physics-m3
+cd instruments/physics-m3
 physics-m3 demo           # Executa demo completa
 physics-m3 --version      # 1.2.0
 ```
@@ -506,7 +506,7 @@ opt.run_doe(lambda p: {"mass": p["L"]*p["w"]})
 
 | Gap | Causa | Solução |
 |-----|-------|---------|
-| `modules/` namespace conflict | 3 workspaces com `modules/` | Usar importlib (já implementado no forwarder) |
+| `modules/` namespace conflict | 3 instruments com `modules/` | Usar importlib (já implementado no forwarder) |
 | Peridynamics instável | Grid pequeno não converge | Aumentar grid + reduzir horizon |
 | Erosão desconectada | Módulo em physics-m3 | Mover para cad-cae-platform |
 | Dashboard sem mesh preview | Gmsh 3D crash headless | Usar matplotlib 2D slice |
@@ -575,14 +575,14 @@ Com base na análise de gaps, a próxima rota de produção deveria ser:
 
 ```bash
 # Testes rápidos
-cd workspaces/physics-m3
+cd instruments/physics-m3
 PYTHONUTF8=1 python -m pytest tests/ -q --tb=line -p no:xdist --ignore=tests/test_topopt_avancada.py
 
 # Testes 3D FEM
 PYTHONUTF8=1 python -m pytest tests/test_topopt_avancada.py -q --tb=line -p no:xdist
 
 # Testes CAD/CAE
-cd workspaces/cad-cae-platform
+cd instruments/cad-cae-platform
 python -m pytest tests/ -q --tb=line
 
 # Testes KDI

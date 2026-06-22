@@ -5,26 +5,26 @@
 
 # ─── Setup ──────────────────────────────────────────────────────────────
 setup:
-	pip install -e workspaces/physics-m3 -e workspaces/cad-cae-platform -e workspaces/kdi-m3-bridge
+	pip install -e instruments/physics-m3 -e instruments/cad-cae-platform -e instruments/kdi-m3-bridge
 	pip install pytest pytest-cov ruff
 
 # ─── Test ────────────────────────────────────────────────────────────────
 test:
-	cd workspaces/physics-m3 && python -m pytest tests/ -v --tb=short -p no:xdist
+	cd instruments/physics-m3 && python -m pytest tests/ -v --tb=short -p no:xdist
 
 test-quick:
-	cd workspaces/physics-m3 && python -m pytest tests/test_benchmarks/ tests/test_vvv_multiscale/ -v --tb=short
+	cd instruments/physics-m3 && python -m pytest tests/test_benchmarks/ tests/test_vvv_multiscale/ -v --tb=short
 
 test-kdi:
-	cd workspaces/kdi-m3-bridge && python -m pytest tests/ -v --tb=short
+	cd instruments/kdi-m3-bridge && python -m pytest tests/ -v --tb=short
 
 # ─── Coverage ─────────────────────────────────────────────────────────────
 coverage:
-	cd workspaces/physics-m3 && python -m pytest tests/ --cov=src/physics_m3 --cov=modules --cov-report=term-missing
+	cd instruments/physics-m3 && python -m pytest tests/ --cov=src/physics_m3 --cov=modules --cov-report=term-missing
 
 # ─── Lint ─────────────────────────────────────────────────────────────────
 lint:
-	ruff check workspaces/physics-m3/src workspaces/physics-m3/modules workspaces/physics-m3/tests || true
+	ruff check instruments/physics-m3/src instruments/physics-m3/modules instruments/physics-m3/tests || true
 
 # ─── Clean ────────────────────────────────────────────────────────────────
 clean:

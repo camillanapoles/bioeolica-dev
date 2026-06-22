@@ -26,7 +26,7 @@
 ## File Structure
 
 ```
-workspaces/cad-cae-platform/
+instruments/cad-cae-platform/
 ├── modules/                     ← All CAD/CAE modules
 │   ├── freecad_bridge.py       ← C1: FreeCAD integration
 │   ├── gmsh_mesher.py          ← C2: Gmsh meshing

@@ -31,7 +31,7 @@
 - Standard Python packaging, no importlib hacks
 - Each workspace gets its own `[project]` section with `name`, `dependencies`, `version`
 - Root `pyproject.toml` defines workspace dependencies via `[tool.uv.workspace]` or manual editable installs
-- CI can run `pip install -e workspaces/physics-m3 -e workspaces/cad-cae -e workspaces/kdi-m3`
+- CI can run `pip install -e instruments/physics-m3 -e instruments/cad-cae -e instruments/kdi-m3`
 
 **Alternatives considered**:
 - Namespace packages: complex, requires `__init__.py` changes in all modules
@@ -57,7 +57,7 @@ PASS = all 6 criteria met. FAIL = any criterion not met → return_phase suggest
 **Pattern**:
 - Trigger: push to main, PR to main
 - Runner: ubuntu-22.04
-- Setup: `pip install -e workspaces/*` (no sudo, no PYTHONUTF8)
+- Setup: `pip install -e instruments/*` (no sudo, no PYTHONUTF8)
 - GPU modules: skipped with warning when CUDA unavailable
 - Steps: lint → unit → integration → coverage (parallel where possible)
 - Timeout: 15 min target

@@ -13,7 +13,7 @@
 ## File Structure
 
 ```
-workspaces/physics-m3/
+instruments/physics-m3/
 ├── modules/ (30 files)
 │   ├── core: m3_analysis, composite_model, mechanical_tests, structural_analysis
 │   ├── simulation: fem_solver, cfd_solver, fluid_dynamics, thermodynamics
@@ -229,7 +229,7 @@ workspaces/physics-m3/
 ## Verification
 
 ```bash
-cd /home/cnmfs/bioeolica-dev2/workspaces/physics-m3
+cd /home/cnmfs/bioeolica-dev2/instruments/physics-m3
 python -m pytest tests/ -q
 # Expected: 295 passed, 1 warning
 

@@ -5,7 +5,7 @@ description: "Validação Experimental — calibração de modelos com dados rea
 
 # Tasks: Validação Experimental (FDC-U O6 Score: 0.690)
 
-**Prerequisites**: workspaces/physics-m3/ com 30+ módulos existentes
+**Prerequisites**: instruments/physics-m3/ com 30+ módulos existentes
 
 ---
 ## Phase 1: Setup

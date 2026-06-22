@@ -2,11 +2,11 @@
 """Test E2E Completo — valida toda a cadeia de valor do sistema.
 
 Cobre: Material → CAD → Macro → Meso → Micro → Falha → Testes Mecânicos → KDI
-Usa importlib para evitar conflito modules/ entre workspaces.
+Usa importlib para evitar conflito modules/ entre instruments.
 """
 
 import importlib.util, sys, os, json, math, pytest
-_PROJ = "/home/cnmfs/bioeolica-dev2/workspaces"
+_PROJ = "/home/cnmfs/bioeolica-dev2/instruments"
 
 def _import(rel, name):
     spec = importlib.util.spec_from_file_location(name, os.path.join(_PROJ, rel))

@@ -4,8 +4,8 @@
 
 ```bash
 # Python packages only — works without CUDA, CalculiX, or Gmsh
-pip install -e workspaces/physics-m3 -e workspaces/cad-cae-platform -e workspaces/kdi-m3-bridge
-python -m pytest workspaces/physics-m3/tests/test_benchmarks/ -v
+pip install -e instruments/physics-m3 -e instruments/cad-cae-platform -e instruments/kdi-m3-bridge
+python -m pytest instruments/physics-m3/tests/test_benchmarks/ -v
 ```
 
 ## System Dependencies (optional, for FEM/CFD solvers)

@@ -1,6 +1,6 @@
 # Bioeólica Dev — Guia de Uso Completo
 
-> Plataforma de simulação multifísica com 3 workspaces integrados. PQMS 92.2%.
+> Plataforma de simulação multifísica com 3 instruments integrados. PQMS 92.2%.
 > 839 testes | 7.109 símbolos | 11.513 relações | 179 fluxos de execução
 
 ---
@@ -29,7 +29,7 @@
 ```bash
 git clone https://github.com/camillanapoles/bioeolica-dev.git
 cd bioeolica-dev
-pip install -e workspaces/physics-m3 -e workspaces/cad-cae-platform -e workspaces/kdi-m3-bridge
+pip install -e instruments/physics-m3 -e instruments/cad-cae-platform -e instruments/kdi-m3-bridge
 make test-quick
 ```
 
@@ -62,7 +62,7 @@ python scripts/compliance/report.py
 
 ```
 bioeolica-dev/
-├── workspaces/
+├── instruments/
 │   ├── physics-m3/          # 41 módulos de física e simulação
 │   │   ├── modules/          # (legado) imports por from modules.xxx
 │   │   ├── src/physics_m3/   # (canonical) imports por from physics_m3.xxx
@@ -252,7 +252,7 @@ print(f"Torque: {torque:.1f} N·m")
 
 | Comando | Descrição | Tempo |
 |---------|-----------|-------|
-| `make setup` | Instala workspaces + dev deps | ~30s |
+| `make setup` | Instala instruments + dev deps | ~30s |
 | `make test` | Suite completa physics-m3 | ~75s |
 | `make test-quick` | Benchmarks + VVV (validação rápida) | ~0.5s |
 | `make test-kdi` | Testes kdi-m3-bridge | ~2s |
@@ -338,7 +338,7 @@ O CI executa automaticamente em push/PR para `main`:
 ```yaml
 # .github/workflows/ci.yml
 Jobs:
-  1. Setup → pip install -e workspaces/*
+  1. Setup → pip install -e instruments/*
   2. Quick tests → benchmarks + VVV
   3. physics-m3 suite → 713 tests
   4. cad-cae suite → 63 tests
@@ -472,7 +472,7 @@ Output salvo em `docs/logs/compliance-YYYYMMDD.md`.
 ### Erro: `ModuleNotFoundError: No module named 'physics_m3'`
 
 ```bash
-pip install -e workspaces/physics-m3
+pip install -e instruments/physics-m3
 ```
 
 ### Erro: `ImportError: CuPy not available`

@@ -43,7 +43,7 @@ Initialize a new FIRE project by detecting workspace type and setting up standar
     <monorepo_detection>
       Check for monorepo indicators:
       - nx.json, turbo.json, pnpm-workspace.yaml, lerna.json, rush.json
-      - package.json with "workspaces" field
+      - package.json with "instruments" field
       - Cargo.toml with [workspace] section
       - go.work file
       - Multiple independent package/dependency manifests

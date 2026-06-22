@@ -20,7 +20,7 @@ def test_has_tabs():
 
 def test_imports_resolve():
     import importlib.util
-    _PROJ = "/home/cnmfs/bioeolica-dev2/workspaces"
+    _PROJ = "/home/cnmfs/bioeolica-dev2/instruments"
     ok = True
     for rel, name in [
         ("kdi-m3-bridge/modules/kdi_forwarder.py", "kdi_forwarder"),

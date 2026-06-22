@@ -6,9 +6,9 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 RUN pip3 install --no-cache-dir \
-    -e /workspace/workspaces/physics-m3 \
-    -e /workspace/workspaces/cad-cae-platform \
-    -e /workspace/workspaces/kdi-m3-bridge \
+    -e /workspace/instruments/physics-m3 \
+    -e /workspace/instruments/cad-cae-platform \
+    -e /workspace/instruments/kdi-m3-bridge \
     pytest pytest-cov ruff
 
 WORKDIR /workspace

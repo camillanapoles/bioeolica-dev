@@ -59,7 +59,7 @@ specs/001-physics-m3-workspace/
 ### Source Code (repository root)
 
 ```text
-workspaces/physics-m3/
+instruments/physics-m3/
 ├── modules/             ← 30 Python analytical modules (core + expansion)
 ├── notebooks/           ← 4 Jupyter labs
 ├── tests/               ← 19 test files, 295 tests

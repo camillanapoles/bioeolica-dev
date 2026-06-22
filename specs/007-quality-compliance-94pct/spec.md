@@ -28,7 +28,7 @@ Como engenheiro de simulação, quero que os testes automatizados validem result
 
 ### User Story 2 - Resolução da Arquitetura Cross-Workspace (Priority: P1)
 
-Como mantenedor do sistema, quero eliminar o workaround de `importlib` para importação entre workspaces, substituindo por uma arquitetura de pacote instalável ou symlink estruturado, para que o sistema seja portável, testável em CI e não dependa de hacks de path.
+Como mantenedor do sistema, quero eliminar o workaround de `importlib` para importação entre instruments, substituindo por uma arquitetura de pacote instalável ou symlink estruturado, para que o sistema seja portável, testável em CI e não dependa de hacks de path.
 
 **Why this priority**: O3 (arquitetura) é o segundo maior gap (0.0880). O importlib hack é frágil, quebra em mudanças de path, e impede CI/CD real.
 
@@ -37,7 +37,7 @@ Como mantenedor do sistema, quero eliminar o workaround de `importlib` para impo
 **Acceptance Scenarios**:
 
 1. **Given** uma instalação limpa do repositório, **When** executo `python -c "from physics_m3.composite import CompositeMaterial"`, **Then** a importação deve funcionar sem erros sem necessidade de PYTHONUTF8 ou manipulação de sys.path
-2. **Given** os workspaces physics-m3, cad-cae, kdi-m3, **When** qualquer um importa de outro, **Then** não deve usar `importlib` workaround
+2. **Given** os instruments physics-m3, cad-cae, kdi-m3, **When** qualquer um importa de outro, **Then** não deve usar `importlib` workaround
 3. **Given** o código em CI, **When** executo o pipeline de testes completo, **Then** todas as importações cross-workspace funcionam sem configuração especial
 
 ---
