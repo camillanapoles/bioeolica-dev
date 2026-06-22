@@ -36,8 +36,8 @@ atividade permanece in_progress, próxima NÃO inicia.
 
 ## ESTADO ATUAL
 
-- **Atividade corrente:** **T05 🚧 INICIADA** (Command bus + event store + handlers). Ritual T04→T05 ✅ (gates T04 verdes, D++ vazio, `HEAD==origin==0dce2b8`, `gitnexus analyze` 8497 nodes/13498 edges). **Decisão bisavra D-T05.1** registrada (abaixo). **Split T05.1-T05.5** (events.py → bus.py → handlers → projection/replay → gates+commit). Próximo: **T05.1** TDD atômico (`runtime/events.py`: `EventStore` + `EventBus`). T04 permanece ✅.
-- **Último commit:** `0dce2b8` (governança: hookify anti-fuga `warn-scope-escape`).
+- **Atividade corrente:** **T05 🚧 em curso — T05.1 ✅** (Event store + event bus). `runtime/events.py` (`EventStore` projeção sobre wal_logs + `EventBus` pub/sub) com 17 testes e **100% cobertura**; gates ruff/mypy --strict/bandit verdes. **Próximo: T05.2** (`runtime/bus.py`: `Command` Pydantic + `CommandBus` + `CommandResult`). Split T05.1-T05.5 (3/5 pendentes). T04 ✅.
+- **Último commit:** `fd8ed36` (início T05 + D-T05.1); T05.1 (código) a commitar abaixo (M4).
 - **Branch:** `main`
 - **Stack:** Pydantic v2 ✅ · SQLAlchemy 2.0 ✅ · `alembic` 1.18.4 ✅ · `pydantic-settings` ✅ · `hypothesis>=6` ✅ (adicionado em T04) · `ruff`/`mypy`/`bandit` ✅. Faltam p/ T07: `structlog`. Faltam p/ T10: `typer`.
 - **Gates permanentes verdes em T04:** ruff (`E,F,W,I,UP,B`) ✅ · mypy `--strict` (8 source files) ✅ · bandit 0 issues ✅ · pytest **164 passed** (90 T02 + 21 T03.4 + 29 T04 validator + 24 T04 auditor, regressão nula) · cobertura **98%** (validator 100%, auditor 97%). Workaround `.venv/bin/python -m pytest` (shebang quebrado — ver T03.4.D++).
@@ -77,20 +77,27 @@ atividade permanece in_progress, próxima NÃO inicia.
 #### Decisão bisavra D-T05.1 — Event store = projeção sobre `wal_logs` (source of truth único)
 - **Decisão:** o event store **NÃO** é uma tabela `domain_events` separada. Eventos de domínio **SÃO** `WalLog`s — cada evento de domínio (`project_created`, `context_published`, `task_allocated`, `team_derived`) = um `WalLog` persistido via `WalRepository.create`, com `map_index.task` indicando o command (e.g. `CMD-NEW-PROJECT`). `EventStore.stream(project)` = projeção ordenada por `timestamp.created` dos WALs do projeto (pagina interna, como o auditor T04 — D-T04.5). `EventStore.append(log)` delega para `store.create` (validação T04 a cargo do caller/bus).
 - **Por quê:** fidelidade à arquitetura §2 ("source of truth = WAL em BD") e D-T03.1 (mapeamento híbrido cols indexadas + payload JSON). Uma tabela `domain_events` separada **duplicaria** o source of truth e criaria drift. O WAL **já é** o log de eventos (event-sourced por design).
-- **Implicação:** `WalRepository.list()` não tem `order_by` (D-T03.2 API) — `EventStore` ordena por `timestamp.created` no Python (débito potencial T05.1.D++).
+- **Implicação:** `WalRepository.list()` não tem `order_by` (D-T03.2 API) — `EventStore` ordena por `(timestamp.created, log_id)` no Python (resolvido em T05.1, não virou débito).
+- **Correção D-T05.1 (T05.1):** o event_type do `EventBus` é o valor de `log.map_index.task` (pattern `^TASK-` do schema). O exemplo `CMD-NEW-PROJECT` do enunciado original **violava o schema** (`MapIndex.task` exige `^TASK-`). Handlers T05.3 criarão logs com `task=TASK-NEW-PROJECT`, `TASK-PUBLISH-CONTEXT`, etc. Fidelidade ao contrato preservada.
 
 #### Split T05.1–T05.5 (cada um: D/D++ + ritual de transição)
-| Sub | Escopo | Gate |
-|---|---|---|
-| **T05.1** | `runtime/events.py` — `EventStore` (stream sobre `wal_logs`) + `EventBus` (pub/sub in-proc) | tdd + python |
-| **T05.2** | `runtime/bus.py` — `Command` (Pydantic frozen) + `CommandBus` (dispatch + registry) + `CommandResult` | tdd + python |
-| **T05.3** | Handlers 4 commands: `new_project`, `publish_context` [4 gates], `allocate_task`, `derive_team` | tdd + security |
-| **T05.4** | `Projection` + `replay(project)` — reconstroi `ProjectState` agregado; idempotência | tdd + review |
-| **T05.5** | Gates verdes + cobertura ≥80% + commit + sync (M4) → retorna ao mestre | verify-quality |
+| Sub | Escopo | Gate | Status |
+|---|---|---|---|
+| **T05.1** | `runtime/events.py` — `EventStore` (stream sobre `wal_logs`) + `EventBus` (pub/sub in-proc) | tdd + python | ✅ |
+| **T05.2** | `runtime/bus.py` — `Command` (Pydantic frozen) + `CommandBus` (dispatch + registry) + `CommandResult` | tdd + python | 🚧 corrente |
+| **T05.3** | Handlers 4 commands: `new_project`, `publish_context` [4 gates], `allocate_task`, `derive_team` | tdd + security | ⏳ |
+| **T05.4** | `Projection` + `replay(project)` — reconstroi `ProjectState` agregado; idempotência | tdd + review | ⏳ |
+| **T05.5** | Gates verdes + cobertura ≥80% + commit + sync (M4) → retorna ao mestre | verify-quality | ⏳ |
 
-- **T05.D:** (preenchido ao concluir cada sub-task).
-- **T05.D++:** (preenchido ao concluir cada sub-task).
-- **Status:** 🚧 T05.1 corrente (TDD atômico: `tests/lab_engine/runtime/test_events.py` → `lab_engine/runtime/events.py` → gates verdes).
+#### T05.1.D (sucessos validados)
+- 4 arquivos criados: `lab_engine/runtime/__init__.py`, `lab_engine/runtime/events.py` (`EventStore` + `EventBus`), `tests/lab_engine/runtime/conftest.py` (importlib do canonical log do wal + fixtures de infra locais), `tests/lab_engine/runtime/test_events.py` (17 testes AAA).
+- `EventStore.append(log)` delega ao `WalRepository.create`; `stream(project)` pagina (`_PAGE_SIZE=500`) e ordena por `(timestamp.created, log_id)` — determinístico e idempotente.
+- `EventBus` pub/sub sobre `map_index.task`; `"*"` catch-all; exceção de handler capturada + logada (não quebra `publish`) — pré-figura T07.
+- Gates: ruff ✅ · mypy --strict ✅ (2 files) · bandit clean ✅ · pytest **17/17 ✅** · cobertura **100%** em `events.py` (41 stmts, 0 miss).
+
+#### T05.1.D++ (débito pós-done — NÃO bloqueia T05.2)
+- **D++ (menor, design):** `conftest` do runtime duplica `engine`/`session`/`repo` do conftest do wal (DRY parcial — optei por robustez em rootdir mode, sem `__init__.py`). Extraível p/ `tests/lab_engine/conftest.py` pai no futuro. Rastreado, não-bloqueante.
+- **D++ (rastreio):** `EventBus.publish` usa `except Exception` amplo (intencional — resiliência); documentado no docstring. bandit não sinalizou.
 
 ---
 
