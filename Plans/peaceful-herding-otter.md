@@ -36,6 +36,14 @@ Cada atividade **T0x** é splitada em duas sub-entradas no checkpoint `Plans/LAB
 - Antes de marcar ✅: re-rodar **todos** os gates da atividade e registrar saídas.
 - Se um item de `D++` for decidido como **"não vou resolver agora, mas é real"** (e.g. emenda ao contrato fonte `INSTRUCTIONS.md`), ele vira uma **EMENDA** rastreada (seção abaixo) e **deixa de bloquear** — mas permanece visível, não desaparece.
 
+### Ritual de transição T(x) → T(x+1) (executar a cada avanço, nesta ordem)
+
+1. **Revisa por test** — re-roda os testes da atividade predecessora `T(x)` (`pytest` + cobertura) **e** os gates permanentes (`ruff`/`mypy`/`bandit`). Tudo precisa estar verde.
+2. **Confirma sucesso antecessor** — verifica no `Plans/LAB-ENGINE-PROGRESS.md` que `T(x).D++` está **vazio** (ou itens remanescentes rastreados como Emenda).
+3. **Se sucesso → prossegue** para `T(x+1)` (marca `in_progress`, inicia). **Se qualquer passo falhar → NÃO avança**; resolve o débito em `T(x).D++` primeiro.
+
+> Este ritual é o que torna M1/M2 **automáticos**: não há decisão de "avançar ou não" — há um checklist. Passou, prossegue; não passou, fica.
+
 ### Anti-padrões proibidos
 
 - ❌ Marcar ✅ com testes não-rodados ou gates não-verdes.
@@ -119,11 +127,22 @@ Conforme regras ECC (`~/.claude/rules/ecc/`) e gates CCG:
 - **Gate:** `tdd-guide` (testes de schema primeiro) + `python-reviewer`.
 - **Métrica:** 100% dos casos do JSON Schema do `INSTRUCTIONS.md` cobertos por teste; ≥80% no módulo.
 
-**T03 — Persistência + CRUD WAL (SQLAlchemy 2.0 + Alembic)**
-- **Faixa:** `lab_engine/wal/store.py` (repository pattern) + migration inicial. Toda I/O do WAL via CRUD — nunca arquivos soltos.
-- **DoD:** CRUD (create/read/update/list/by-parent/by-task) funcional em SQLite; migration aplicável/reversível.
-- **Gate:** `tdd-guide` + `security-reviewer` (injection no repositório) + `verify-quality`.
-- **Métrica:** transações testadas (commit/rollback); 0 string-concat em queries.
+**T03 — Persistência + CRUD WAL (SQLAlchemy 2.0 + Alembic)** — 🔗 **sub-plano split**: `Plans/T03-persistencia-wal.md` (T03.1–T03.5)
+
+> **T03 é bisavra de arquitetura** — a decisão de persistência aqui governa T03→T13. Por isso é **splitada em multi-tasks** (T03.1–T03.5), cada uma com gate próprio + mandato T0x.D/T0x.D++ + ritual de transição. A última (T03.5) **retorna ao plano mestre** (marca T03 ✅ no PROGRESS). Detalhe (schema SQL completo, assinaturas, fluxo) vive no sub-plano `Plans/T03-persistencia-wal.md`; abaixo, o resumo executivo.
+
+- **Faixa (global T03):** `lab_engine/wal/store.py` (repository pattern) + `lab_engine/settings.py` (zero-hardcoded) + `lab_engine/db.py` (engine/session) + migration Alembic. Toda I/O do WAL via CRUD — nunca arquivos soltos.
+- **DoD (global T03):** CRUD (create/read/update/list/by-parent/by-task) funcional; migration aplicável/reversível; DB-agnóstico (SQLite dev/test, Postgres prod-ready).
+- **Gate global:** `tdd-guide` + `security-reviewer` (injection, 0 string-concat) + `verify-quality`.
+- **Métrica global:** transações testadas (commit/rollback); 0 string-concat em queries; cobertura ≥80%.
+
+**Sub-tasks T03 (cada uma: T0x.D/T0x.D++ + ritual de transição):**
+
+- **T03.1 — Settings + infra DB (zero-hardcoded):** `Plans/T03-persistencia-wal.md` (cria o sub-plano); `lab_engine/settings.py` (`BaseSettings`, `wal_db_url` configurável via env, default `sqlite:///data/lab_engine.db`); `lab_engine/db.py` (`Base(DeclarativeBase)`, `make_engine()` com PRAGMAS SQLite-condicional `journal_mode=WAL`/`foreign_keys=ON`, `sessionmaker`, `get_session()`). Adicionar `alembic`+`pydantic-settings` ao `pyproject.toml`. **Gate:** verify-security (zero-hardcoded) + python-reviewer.
+- **T03.2 — ORM `wal_logs` + Repository CRUD (6 ops, híbrido):** `lab_engine/wal/store.py` — `WalLogRow(Base)` (colunas indexadas de navegação + `payload` JSON wire-format) + `WalRepository` (create/read/update/list/by_parent/by_task). Queries parametrizadas SQLAlchemy 2.0 (`select().where(col == :value)`). **Gate:** tdd-guide + security-reviewer (injection).
+- **T03.3 — Alembic migration inicial:** `alembic init` + `env.py` (engine das settings + `target_metadata`) + migration `0001_create_wal_logs` (tabela + índices). **DoD:** `upgrade head` aplicável E `downgrade base` reversível. **Gate:** verify-change.
+- **T03.4 — Testes + gates verdes:** `tests/lab_engine/wal/conftest.py` (fixtures `engine`/`session` SQLite in-memory `StaticPool`) + `test_store.py` (CRUD 6 ops, commit/rollback, round-trip `WalLog`, by-parent/by-task, **injection negativo**). Cobertura ≥80%; ruff/mypy/bandit/pytest verdes. **Gate:** tdd-guide + verify-quality.
+- **T03.5 — Commit + sync + retorno ao mestre (M4):** commit + push origin/main; atualiza `PROGRESS.md` (T03.D/T03.D++); marca **T03 ✅** no mestre → **retorna ao fluxo T04**.
 
 **T04 — Validador garantista + Auditor WAL**
 - **Faixa:** `lab_engine/wal/validator.py` (rejeita antes de persistir) + `lab_engine/wal/auditor.py` (detecta `PENDING > 24h`, órfãos de `parent_log`, breaches de schema — L2005/L2006).
@@ -201,7 +220,7 @@ Conforme regras ECC (`~/.claude/rules/ecc/`) e gates CCG:
 |----|-----------|----------------|---------------|----------|
 | T01 | Rename `workspaces/`→`instruments/` + doc contrato | verify-change | 0 refs a `workspaces/` | T02 |
 | T02 | Modelos Pydantic WAL (JSON Schema) | tdd + python | 100% casos schema | T03 |
-| T03 | Persistência + CRUD WAL (SQLA+Alembic) | tdd + security | 0 concat em queries | T04 |
+| T03 | Persistência + CRUD WAL (SQLA+Alembic) — 🔗 split `T03.1`–`T03.5` (ver sub-plano) | tdd + security | 0 concat em queries; DB-agnostic | T04 |
 | T04 | Validador + Auditor WAL | tdd + property | 4 anomalias auditor | T05 |
 | T05 | Command bus + event store | tdd + python | replay idempotente | T06 |
 | T06 | Workflow F1-F9 FSM | tdd + review | 9 fases+guards | T07 |
@@ -261,6 +280,28 @@ Conforme regras ECC (`~/.claude/rules/ecc/`) e gates CCG:
 - **Onde:** `INSTRUCTIONS.md` — `error_metrics` (L2274-2281) e `patches` (L2304-2311) **não** declaram `additionalProperties: false`.
 - **Decisão:** `_ALLOW_EXTRA` (extra=allow) nesses dois; `_FORBID_EXTRA` (extra=forbid) em todos os demais onde o schema declara forbid (timestamp, 5w1h, where, how, map_index, validation, quality_metrics, top-level WalLog).
 - **Por quê:** o modelo espelha **exatamente** o que o contrato canônico determina — nem mais, nem menos.
+
+### D-T03.1 — Mapeamento WalLog↔SQLite HÍBRIDO (cols indexadas + payload JSON)
+- **Decisão (bisavra, confirmada com usuário):** tabela `wal_logs` com colunas indexadas de navegação (`log_id` PK, `project`, `domain`, `scale`, `task`, `parent_log`, `validation_status`, `created_at`) **+** coluna `payload` (JSON TEXT) com o wire-format completo (`model_dump_json(by_alias=True)`).
+- **Round-trip:** `read(id)` desserializa via `WalLog.model_validate_json(row.payload)` → retorna `WalLog` nativo. As colunas indexadas são só para query eficiente (by-parent, by-task, filtros); o `payload` garante fidelidade total ao schema.
+- **Por quê:** padrão SOTA para event-store/WAL — queries rápidas nas chaves do contrato + zero drift Pydantic↔ORM. Normalização total seria mapeamento complexo com risco de drift a cada emenda.
+
+### D-T03.2 — `update(log_id, novo_log)` substitui row; append-only = política de runtime
+- **Decisão (confirmada com usuário):** o store (mecanismo CRUD agnóstico) oferece `update(log_id, novo_log: WalLog)` que **substitui** a row. A **política append-only** ("mudar = criar novo log com `parent_log`") é **enforcement do runtime** (T05/T06), **não** do store.
+- **Por quê:** honra o DoD literal (6 ops CRUD) e mantém o store simples/testável. O runtime decide usar `create` para logs (preservando append-only) e reservar `update` para correções administrativas.
+
+### D-T03.3 — DB-agnóstico via SQLAlchemy (SQLite dev/test, Postgres prod-ready)
+- **Decisão:** `wal_db_url` configurável via settings (`LAB_ENGINE_WAL_DB_URL`), default SQLite. Engine factory `make_engine(url)` aplica PRAGMAS (`journal_mode=WAL`, `foreign_keys=ON`, `busy_timeout`) **condicionalmente** (só quando dialect é SQLite); coluna JSON via `sqlalchemy.JSON` genérico (mapeia `JSONB` em Postgres). Migration Alembic gera SQL por dialect.
+- **Por quê:** o mandato "WAL em BD" + reprodutibilidade exigem backend configurável, não hardcoded. SQLAlchemy abstrai SQLite↔Postgres sem mudança de código de domínio.
+
+### D-T03.4 — Source-of-truth WAL = BD relacional durável; Redis é complementar (NÃO substituto)
+- **Decisão (esclarece o papel do Redis):** o source-of-truth garantista do WAL **deve** ser um BD relacional durável transacional (SQLite/Postgres) — nunca Redis. Redis (in-memory, persistência opcional) **não atende** o mandato "source of truth = WAL em BD".
+- **Redis é arquitetura válida como camada complementar em T05/T07/T08:** pub/sub do event bus (T05), cache de queries, circuit-breaker/rate-limit (T07), dead-letter queue (T07), correlation state A2A (T08).
+- **Por quê:** garantirismo exige durabilidade + transações; cache/mensageria é concern ortogonal, não substituto de persistência.
+
+### D-T03.5 — Store recebe `WalLog` já validado; `auto_fix`/REJECT ficam em T04
+- **Decisão:** o store persiste objetos `WalLog` **já validados** pela camada Pydantic (T02 faz `extra="forbid"`). O store **não revalida** schema. `auto_fix` (log_id, `timestamp.created`, INSTRUCTIONS.md L2325) e o gate REJECT explícito (`on_invalid`/`on_unknown_field`) vivem no `validator.py` de **T04**, que enfileira antes de `store.create()`.
+- **Por quê:** separação de concerns — o store é CRUD puro; o garantismo (validação pré-persistência) é do validator.
 
 ### EMENDA-E001 — elevar ranges "0-100%" a `minimum/maximum` formais (de D-T02.1)
 ```
