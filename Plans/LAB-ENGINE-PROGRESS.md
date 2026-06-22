@@ -36,8 +36,8 @@ atividade permanece in_progress, próxima NÃO inicia.
 
 ## ESTADO ATUAL
 
-- **Atividade corrente:** **T04 ✅ CONCLUÍDO** (Validador garantista + Auditor WAL). `lab_engine/wal/validator.py` (gate pré-persistência: `auto_fix` → `model_validate` → `ValidationResult`, nunca levanta) + `lab_engine/wal/auditor.py` (4 anomalias: `PENDING_STALE`/`ORPHAN`/`ABANDONED`/`SCHEMA_BREACH`). 53 testes (29 validator + 24 auditor) incluindo property-based (hypothesis) e boundary determinístico. → **PRÓXIMA: T05** (Command bus + event store + handlers).
-- **Último commit:** (T04 — ver commit abaixo após M4).
+- **Atividade corrente:** **T05 🚧 INICIADA** (Command bus + event store + handlers). Ritual T04→T05 ✅ (gates T04 verdes, D++ vazio, `HEAD==origin==0dce2b8`, `gitnexus analyze` 8497 nodes/13498 edges). **Decisão bisavra D-T05.1** registrada (abaixo). **Split T05.1-T05.5** (events.py → bus.py → handlers → projection/replay → gates+commit). Próximo: **T05.1** TDD atômico (`runtime/events.py`: `EventStore` + `EventBus`). T04 permanece ✅.
+- **Último commit:** `0dce2b8` (governança: hookify anti-fuga `warn-scope-escape`).
 - **Branch:** `main`
 - **Stack:** Pydantic v2 ✅ · SQLAlchemy 2.0 ✅ · `alembic` 1.18.4 ✅ · `pydantic-settings` ✅ · `hypothesis>=6` ✅ (adicionado em T04) · `ruff`/`mypy`/`bandit` ✅. Faltam p/ T07: `structlog`. Faltam p/ T10: `typer`.
 - **Gates permanentes verdes em T04:** ruff (`E,F,W,I,UP,B`) ✅ · mypy `--strict` (8 source files) ✅ · bandit 0 issues ✅ · pytest **164 passed** (90 T02 + 21 T03.4 + 29 T04 validator + 24 T04 auditor, regressão nula) · cobertura **98%** (validator 100%, auditor 97%). Workaround `.venv/bin/python -m pytest` (shebang quebrado — ver T03.4.D++).
@@ -68,6 +68,31 @@ atividade permanece in_progress, próxima NÃO inicia.
 ---
 
 ## LOG DE ATIVIDADES
+
+### T05 🚧 — Command bus + Event store + Handlers — INICIADA (ritual T04→T05 ✅, T05.1 corrente)
+
+- **Data:** 2026-06-22
+- **Contexto:** T05 = FASE 2 (Runtime event-driven). Command bus + event store + handlers. DoD mestre: cada command produz ≥1 evento WAL; handlers reagem; replay idempotente reconstroi estado. Rit. transição T04→T05: gates T04 verdes (nada mudou em `lab_engine/`), T04.D++ vazio, `HEAD==origin==0dce2b8`, `gitnexus analyze` (8497 nodes/13498 edges/197 flows) ✅.
+
+#### Decisão bisavra D-T05.1 — Event store = projeção sobre `wal_logs` (source of truth único)
+- **Decisão:** o event store **NÃO** é uma tabela `domain_events` separada. Eventos de domínio **SÃO** `WalLog`s — cada evento de domínio (`project_created`, `context_published`, `task_allocated`, `team_derived`) = um `WalLog` persistido via `WalRepository.create`, com `map_index.task` indicando o command (e.g. `CMD-NEW-PROJECT`). `EventStore.stream(project)` = projeção ordenada por `timestamp.created` dos WALs do projeto (pagina interna, como o auditor T04 — D-T04.5). `EventStore.append(log)` delega para `store.create` (validação T04 a cargo do caller/bus).
+- **Por quê:** fidelidade à arquitetura §2 ("source of truth = WAL em BD") e D-T03.1 (mapeamento híbrido cols indexadas + payload JSON). Uma tabela `domain_events` separada **duplicaria** o source of truth e criaria drift. O WAL **já é** o log de eventos (event-sourced por design).
+- **Implicação:** `WalRepository.list()` não tem `order_by` (D-T03.2 API) — `EventStore` ordena por `timestamp.created` no Python (débito potencial T05.1.D++).
+
+#### Split T05.1–T05.5 (cada um: D/D++ + ritual de transição)
+| Sub | Escopo | Gate |
+|---|---|---|
+| **T05.1** | `runtime/events.py` — `EventStore` (stream sobre `wal_logs`) + `EventBus` (pub/sub in-proc) | tdd + python |
+| **T05.2** | `runtime/bus.py` — `Command` (Pydantic frozen) + `CommandBus` (dispatch + registry) + `CommandResult` | tdd + python |
+| **T05.3** | Handlers 4 commands: `new_project`, `publish_context` [4 gates], `allocate_task`, `derive_team` | tdd + security |
+| **T05.4** | `Projection` + `replay(project)` — reconstroi `ProjectState` agregado; idempotência | tdd + review |
+| **T05.5** | Gates verdes + cobertura ≥80% + commit + sync (M4) → retorna ao mestre | verify-quality |
+
+- **T05.D:** (preenchido ao concluir cada sub-task).
+- **T05.D++:** (preenchido ao concluir cada sub-task).
+- **Status:** 🚧 T05.1 corrente (TDD atômico: `tests/lab_engine/runtime/test_events.py` → `lab_engine/runtime/events.py` → gates verdes).
+
+---
 
 ### T04 ✅ — Validador garantista + Auditor WAL — T04.D concluído, T04.D++ VAZIO
 - **Data:** 2026-06-22
