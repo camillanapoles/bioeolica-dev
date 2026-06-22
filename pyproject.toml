@@ -56,3 +56,30 @@ include = ["src/*", "cad/*", "scripts/*", "lab_engine/*"]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = "-v --tb=short --no-header -p no:xdist"
+
+# ---- Gates estáticos permanentes (T02+: todo código Python passa por estes) ----
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+warn_return_any = true
+warn_redundant_casts = true
+# Dependências científicas sem type stubs (cadquery, gmsh, vtk, OCC) — não falhar.
+# Os overrides abaixo aplicam-se ao verificar src/ (que importa essas libs).
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["cadquery.*", "gmsh.*", "vtk.*", "OCC.*", "scipy.*", "matplotlib.*"]
+ignore_missing_imports = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv", "instruments", "workspace"]
+# B105 (hardcoded_password_string) flagga falsamente valores de enum como "PASS".
+# Cada ocorrência legítima usa `# nosec B105` inline justificado — não silenciar global.

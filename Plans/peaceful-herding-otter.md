@@ -18,6 +18,44 @@ O motor multi-agente que produziu `workspace/motor-gerador-v1` (29 contextos, 7 
 
 ---
 
+## ⛔ Mandato T0x.D / T0x.D++ — anti-bola-de-neve (GOVERNA TODAS AS ATIVIDADES)
+
+> **Princípio:** *um pequeno erro ou gap, não-resolvido, vira bola de neve.* O pior erro de continuidade é **avançar percebendo falha/gap implícito**. Este mecanismo torna M1 (sucesso obrigatório) **operacional e auditável** — não uma intenção.
+
+Cada atividade **T0x** é splitada em duas sub-entradas no checkpoint `Plans/LAB-ENGINE-PROGRESS.md`:
+
+| Sub-entrada | Significado | Condição |
+|---|---|---|
+| **`T0x.D`** | task realizada **com sucessos** — código executado, testes passando, gates verdes, DoD mensurável atendido. | Evidências concretas (números, links, saídas de gate). |
+| **`T0x.D++`** | **Todo pós-Done** — `[fix/refine/débito/gap]` que restou. Cada item **deve** ter: descrição, decisão tomada (ou designada com rastreio), e status. | Pode incluir item *designado* (rastreado a atividade futura) **sem** bloquear — mas precisa estar explícito. |
+
+### Regra de bloqueio (operacionaliza M1 + M2)
+
+- **Só avança `T0x → T(x+1)` quando `T0x.D++` está VAZIO**, *ou* todos os itens remanescentes estão explicitamente **designados** (rastreados a uma atividade futura nomeada, com justificativa de porquê não bloqueia).
+- **NUNCA** marcar `T0x` como ✅ enquanto existir gap/erro não-decidido em `T0x.D++`.
+- Antes de marcar ✅: re-rodar **todos** os gates da atividade e registrar saídas.
+- Se um item de `D++` for decidido como **"não vou resolver agora, mas é real"** (e.g. emenda ao contrato fonte `INSTRUCTIONS.md`), ele vira uma **EMENDA** rastreada (seção abaixo) e **deixa de bloquear** — mas permanece visível, não desaparece.
+
+### Anti-padrões proibidos
+
+- ❌ Marcar ✅ com testes não-rodados ou gates não-verdes.
+- ❌ Avançar "percebendo" que algo ficou faltando ("depois eu volto aqui").
+- ❌ Inflar `D++` sem decisão — débito sem dono/data é o germe da bola de neve.
+- ❌ Resolver `D++` inventando contrato (e.g. inventar `minimum/maximum` que o schema canônico não declara) — fidelidade ao fonte sempre vence; se o contrato precisa mudar, é **emenda**.
+
+### Emendas ao contrato-fonte (`INSTRUCTIONS.md`)
+
+Quando um `D++` exige mudar o `INSTRUCTIONS.md` (o source-of-truth canônico), **não** se resolve na atividade corrente — vira uma **EMENDA** formal:
+
+```
+EMENDA-E0xx | Onde: INSTRUCTIONS.md Lxxxx | O que: elevar X de description a constraint |
+            | Por quê: Y | Rastreio: atividade Z (ou "pós-T13, não-bloqueante")
+```
+
+Emendas **não-bloqueantes** podem ser postergadas para depois de T13, mas ficam registradas.
+
+---
+
 ## Arquitetura SOTA 2026 recomendada (declarada, justificada)
 
 **LAB-ENGINE = runtime WAL event-sourced, Python-nativo, sem servidor externo.** Source of truth = **log WAL em banco de dados**, validado por schema **antes** de persistir.
@@ -195,3 +233,40 @@ Conforme regras ECC (`~/.claude/rules/ecc/`) e gates CCG:
 - **Risco:** regressão ao portar lógica bash → Python. **Mitigação:** T12 (reprodutibilidade vs fixtures) é o gate final; reuso do `src/` de domínio existente (cad/thermo/gpu).
 - **Risco:** over-engineering do event-sourcing. **Mitigação:** escopo SQLite local; Temporal só como upgrade path.
 - **Risco:** doc-canônico (`INSTRUCTIONS.md`) divergir da implementação. **Mitigação:** T02 deriva modelos **do** JSON Schema do doc; `verify-change` a cada T garante sincronia.
+
+---
+
+## 📒 Decisões de contrato registradas (auditável — nunca inventar contrato)
+
+> Cada decisão aqui é **fidelidade ao `INSTRUCTIONS.md`** (source-of-truth) vencendo conveniência. Itens que exigem mudar o fonte viram **EMENDA** (seção do Mandato T0x.D/T0x.D++).
+
+### D-T02.1 — `quality_metrics` D1-D10: ranges "0-100%" NÃO são constraint (H2)
+- **Onde:** `INSTRUCTIONS.md` L2289-2298 descreve alguns D-campos como `"0-100%"`, porém apenas como *description*.
+- **Decisão:** o modelo **não inventa** `minimum/maximum`. `QualityMetrics` declara `D*_*: NumberOrStr | None` — espelha fielmente o contrato.
+- **Por quê:** inventar ranges seria violar fidelidade ao schema canônico. Se o contrato precisa de constraint, é uma **emenda ao fonte** (abaixo), não decisão de implementação.
+- **Status:** DECIDIDO (T02). Documentado no docstring de `QualityMetrics`.
+
+### D-T02.2 — `how.parameters: dict[str, Any]` reflete `object` do JSON Schema (C3)
+- **Onde:** `INSTRUCTIONS.md` L2245 declara `parameters: ["string","object","null"]`.
+- **Decisão:** `parameters: str | dict[str, Any] | None`. `object` = qualquer mapa JSON válido.
+- **Por quê:** fidelidade ao `object` do JSON Schema (mapa aberto). Documentado no docstring de `WalHow`.
+
+### D-T02.3 — `enum.StrEnum` para todos os enums (M2/L3, UP042)
+- **Onde:** todos os enums (`Domain`, `Scale`, `ValidationStatus`, `RigorStatus`, `SecurityClassification`).
+- **Decisão:** usar `class X(StrEnum)` (Python 3.11+, idiomático). `StrEnum` é subclasse de `(str, Enum)` — API e serialização Pydantic v2 idênticas, mas satisfaz o gate permanente ruff UP042 (que sinaliza `(str, Enum)` como code-smell moderno).
+- **Por quê:** o projeto exige `python>=3.11`; `StrEnum` é o idiomático 2026. Decisão de **linguagem**, não de contrato (fidelidade ao WAL preservada).
+- **Status:** DECIDIDO (T02). Revisão: originalmente `(str, Enum)` por legibilidade — revertida para verde no gate `UP`.
+
+### D-T02.4 — `error_metrics`/`patches` aceitam extras; demais sub-modelos `forbid` (fidelidade)
+- **Onde:** `INSTRUCTIONS.md` — `error_metrics` (L2274-2281) e `patches` (L2304-2311) **não** declaram `additionalProperties: false`.
+- **Decisão:** `_ALLOW_EXTRA` (extra=allow) nesses dois; `_FORBID_EXTRA` (extra=forbid) em todos os demais onde o schema declara forbid (timestamp, 5w1h, where, how, map_index, validation, quality_metrics, top-level WalLog).
+- **Por quê:** o modelo espelha **exatamente** o que o contrato canônico determina — nem mais, nem menos.
+
+### EMENDA-E001 — elevar ranges "0-100%" a `minimum/maximum` formais (de D-T02.1)
+```
+EMENDA-E001 | Onde: INSTRUCTIONS.md L2289-2298 (quality_metrics D1-D10) |
+            | O que: converter description "0-100%" em minimum:0/maximum:100 formais |
+            | Por quê: permitir validação de range no modelo, não só semântica |
+            | Rastreio: pós-T13 (não-bloqueante). Ao aplicar, reabrir T02.D++ para refletir.
+```
+

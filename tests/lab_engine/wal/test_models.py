@@ -22,7 +22,7 @@ Cobrem 100% dos casos do json_schema_validation:
 from __future__ import annotations
 
 import copy
-from datetime import datetime, timezone
+from datetime import datetime
 from uuid import uuid4
 
 import pytest
@@ -31,13 +31,19 @@ from pydantic import ValidationError
 from lab_engine.wal.models import (
     VALID_DOMAINS,
     Domain,
+    ErrorMetrics,
+    MapIndex,
+    Patches,
+    QualityMetrics,
     RigorStatus,
     Scale,
     SecurityClassification,
     ValidationStatus,
+    Wal5W1H,
     WalLog,
+    WalTimestamp,
+    WalValidation,
 )
-
 
 # --------------------------------------------------------------------------- #
 # Helpers / Fixtures
@@ -119,6 +125,7 @@ class TestValidLogs:
         assert log.map_index.domain == Domain.MECANICA
 
     def test_full_log_with_all_optionals_accepted(self, valid_log):
+        # Arrange — preencher TODOS os opcionais do schema.
         valid_log["quality_metrics"] = {
             "D1_completude": 95,
             "D2_profundidade": 90,
@@ -139,7 +146,9 @@ class TestValidLogs:
             "modified": ["src/cad/tower.py:5"],
         }
         valid_log["security_classification"] = "internal"
+        # Act — validar o payload completo (todos os opcionais).
         log = WalLog.model_validate(valid_log)
+        # Assert — opcionais parseados nos tipos canônicos esperados.
         assert log.quality_metrics.D3_rigor == RigorStatus.PASS
         assert log.security_classification == SecurityClassification.INTERNAL
 
@@ -404,9 +413,9 @@ class TestTimezoneAware:
     def test_numeric_offset_accepted(self, valid_log):
         valid_log["timestamp"]["created"] = "2026-06-22T09:00:00-03:00"
         log = WalLog.model_validate(valid_log)
-        # normalizado para UTC
-        assert log.timestamp.created.utcoffset() == timezone.utc.utcoffset(None) \
-            or log.timestamp.created.tzinfo is not None
+        # offset numérico aceito → datetime timezone-aware com utcoffset não-nulo
+        assert log.timestamp.created.tzinfo is not None
+        assert log.timestamp.created.utcoffset() is not None
 
 
 # --------------------------------------------------------------------------- #
@@ -481,10 +490,13 @@ class TestWireFormat:
 
 class TestRoundTrip:
     def test_json_round_trip_preserves_data(self, valid_log):
+        # Arrange — log WAL canônico a partir do dict.
         log = WalLog.model_validate(valid_log)
+        # Act — serializar (wire-format) e desserializar de volta.
         dumped = log.model_dump_json(by_alias=True)  # wire-format WAL usa "5w1h"
-        assert '"5w1h"' in dumped  # alias canônico preservado
         restored = WalLog.model_validate_json(dumped)
+        # Assert — round-trip sem perda; alias canônico preservado no JSON.
+        assert '"5w1h"' in dumped  # alias canônico preservado
         assert restored.log_id == log.log_id
         assert restored.map_index.domain == log.map_index.domain
         assert restored.validation.status == log.validation.status
@@ -503,19 +515,131 @@ class TestRoundTrip:
 
 
 # --------------------------------------------------------------------------- #
+# Fidelidade JSON Schema: o schema GERADO pelo Pydantic deve refletir o
+# canônico do INSTRUCTIONS.md L2198-2319 (DoD T02: "Round-trip JSON Schema
+# <-> Pydantic"). Cada asserção espelha uma cláusula do contrato canônico.
+# --------------------------------------------------------------------------- #
+
+class TestSchemaFidelity:
+    """DoD T02: o JSON Schema gerado pelos modelos é fiel ao canônico."""
+
+    def test_wallog_required_top_level(self):
+        s = WalLog.model_json_schema(by_alias=True)
+        assert set(s["required"]) == {"log_id", "timestamp", "5w1h", "map_index", "validation"}
+
+    def test_wallog_top_level_additional_properties_false(self):
+        # INSTRUCTIONS.md L2318: additionalProperties: false no nível raiz.
+        s = WalLog.model_json_schema(by_alias=True)
+        assert s["additionalProperties"] is False
+
+    def test_wallog_uses_alias_5w1h_in_schema(self):
+        # O schema canônico usa "5w1h" (não "five_w1h").
+        s = WalLog.model_json_schema(by_alias=True)
+        assert "5w1h" in s["properties"]
+        assert "five_w1h" not in s["properties"]
+
+    def test_timestamp_required_and_forbid(self):
+        # L2211: required created/started/finished; L2217: additionalProperties false.
+        s = WalTimestamp.model_json_schema()
+        assert set(s["required"]) == {"created", "started", "finished"}
+        assert s["additionalProperties"] is False
+
+    def test_where_required_and_forbid(self):
+        # L2229: required file/version; L2236: forbid.
+        s = Wal5W1H.model_json_schema()["properties"]["where"]
+        # where é $ref — resolve via $defs
+        defs = Wal5W1H.model_json_schema().get("$defs", {})
+        where = defs.get("WalWhere", s)
+        assert set(where["required"]) == {"file", "version"}
+        assert where["additionalProperties"] is False
+
+    def test_how_required_and_forbid(self):
+        # L2240: required method/tool/tool_version; L2249: forbid.
+        defs = Wal5W1H.model_json_schema()["$defs"]
+        how = defs["WalHow"]
+        assert set(how["required"]) == {"method", "tool", "tool_version"}
+        assert how["additionalProperties"] is False
+
+    def test_map_index_required_patterns_and_forbid(self):
+        # L2256: required project/domain/scale/task; L2258/2261: patterns; L2265: forbid.
+        s = MapIndex.model_json_schema()
+        assert set(s["required"]) == {"project", "domain", "scale", "task"}
+        assert s["properties"]["project"]["pattern"] == "^PRODUTO-"
+        assert s["properties"]["task"]["pattern"] == "^TASK-"
+        assert s["additionalProperties"] is False
+
+    def test_validation_required_status_method_and_forbid(self):
+        # L2269: required status/method; L2283: forbid.
+        s = WalValidation.model_json_schema()
+        assert set(s["required"]) == {"status", "method"}
+        assert s["additionalProperties"] is False
+
+    def test_quality_metrics_forbid(self):
+        # L2300: forbid em quality_metrics.
+        s = QualityMetrics.model_json_schema()
+        assert s["additionalProperties"] is False
+
+    def test_error_metrics_allows_extra(self):
+        # L2274-2281: o schema canônico NÃO declara forbid em error_metrics.
+        s = ErrorMetrics.model_json_schema()
+        assert s.get("additionalProperties", True) is not False
+
+    def test_patches_allows_extra(self):
+        # L2304-2311: o schema canônico NÃO declara forbid em patches.
+        s = Patches.model_json_schema()
+        assert s.get("additionalProperties", True) is not False
+
+    def test_log_id_pattern_canonical(self):
+        s = WalLog.model_json_schema(by_alias=True)
+        assert s["properties"]["log_id"]["pattern"] == (
+            r"^LOG-[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}$"
+        )
+
+    def test_domain_enum_has_10_values(self):
+        s = MapIndex.model_json_schema()
+        # enums viram $ref para $defs/<EnumName>.
+        assert set(s["$defs"]["Domain"]["enum"]) == VALID_DOMAINS
+        assert len(s["$defs"]["Domain"]["enum"]) == 10
+
+    def test_scale_enum_has_3_values(self):
+        s = MapIndex.model_json_schema()
+        assert set(s["$defs"]["Scale"]["enum"]) == {"macro", "meso", "micro"}
+
+    def test_validation_status_enum(self):
+        s = WalValidation.model_json_schema()
+        assert s["$defs"]["ValidationStatus"]["enum"] == ["PASS", "FAIL", "PENDING"]
+
+    def test_d3_rigor_enum(self):
+        s = QualityMetrics.model_json_schema()
+        assert s["$defs"]["RigorStatus"]["enum"] == ["PASS", "FAIL"]
+
+    def test_security_classification_enum(self):
+        s = WalLog.model_json_schema(by_alias=True)
+        assert set(s["$defs"]["SecurityClassification"]["enum"]) == {
+            "public", "internal", "confidential", "restricted",
+        }
+
+    def test_what_and_why_min_length_10(self):
+        s = Wal5W1H.model_json_schema()
+        assert s["properties"]["what"]["minLength"] == 10
+        assert s["properties"]["why"]["minLength"] == 10
+
+
+# --------------------------------------------------------------------------- #
 # Imutabilidade: WAL é append-only (frozen=True) + fixture não vaza
 # --------------------------------------------------------------------------- #
 
 def test_model_is_frozen_and_fixture_independent(valid_log):
+    # Arrange — snapshot do dict + log instanciado.
     snapshot = copy.deepcopy(valid_log)
     log = WalLog.model_validate(valid_log)
-    # WAL é append-only: mutação direta é proibida (frozen).
+    # Act/Assert — WAL é append-only: mutação direta é proibida (frozen).
     with pytest.raises(ValidationError):
         log.map_index.domain = Domain.FLUIDOS
-    # Derivar uma variação via model_copy NÃO muta a fixture original.
+    # Act — derivar uma variação via model_copy NÃO muta a fixture original.
     derived = log.model_copy(
         update={"map_index": log.map_index.model_copy(update={"domain": Domain.FLUIDOS})}
     )
+    # Assert — variação derivada tem o novo domínio e a fixture original (dict) não foi mutada.
     assert derived.map_index.domain == Domain.FLUIDOS
-    # valid_log (dict) não foi mutado
     assert valid_log["map_index"]["domain"] == snapshot["map_index"]["domain"]

@@ -36,11 +36,12 @@ atividade permanece in_progress, próxima NÃO inicia.
 
 ## ESTADO ATUAL
 
-- **Atividade corrente:** T02 ✅ CONCLUÍDA → próxima = **T03**
-- **Último commit:** `6fd7330` (`feat(wal): modelos Pydantic v2 do WAL (T02)`, sync origin/main)
+- **Atividade corrente:** T02 ✅ **CONCLUÍDA 100% (T02.D com T02.D++ VAZIO)** → liberada **T03**
+- **Último commit:** `feat(wal): modelos Pydantic v2 do WAL 100% canônicos + gates permanentes (T02.D)` (sync origin/main após push)
 - **Branch:** `main`
-- **Grafo:** 8567 nodes / 13387 edges / 192 flows (gitnexus auto-update pós-T02)
-- **Stack:** Pydantic v2 ✅ (em pyproject). Faltam p/ T03+: `alembic`, `pydantic-settings` (SQLAlchemy 2.0 já presente). Faltam p/ T07+: `structlog`. Faltam p/ T10: `typer` (+ entry `[project.scripts] lab-engine`).
+- **Grafo:** 8799 nodes / 13624 edges / 192 flows (gitnexus auto-update pós-T02)
+- **Stack:** Pydantic v2 ✅ · SQLAlchemy 2.0 ✅ · `ruff`/`mypy`/`bandit` ✅ (instalados no `.venv`). Faltam p/ T03: `alembic`, `pydantic-settings`. Faltam p/ T07: `structlog`. Faltam p/ T10: `typer` (+ entry `[project.scripts] lab-engine`).
+- **Gates permanentes (pyproject) TODOS VERDES em T02:** ruff (`E,F,W,I,UP,B`) · mypy `--strict` · bandit · pytest+cov. Rodar via `.venv/bin/python -m {ruff,mypy,bandit,pytest}` (NÃO `uv run` — trava em `vtk` cp313 sem wheel).
 
 ## Próxima ação (retomar aqui)
 
@@ -66,25 +67,38 @@ atividade permanece in_progress, próxima NÃO inicia.
 
 ## LOG DE ATIVIDADES
 
-### T02 ✅ — Modelos Pydantic v2 do WAL (FASE 1, source of truth garantista)
-- **Data:** 2026-06-22
-- **Feito:**
-  - `lab_engine/wal/models.py` — 9 sub-modelos + `WalLog`, 5 enums (`Domain`×10, `Scale`×3, `ValidationStatus`, `RigorStatus`, `SecurityClassification`), espelhando fielmente o JSON Schema L2198-2320 do `INSTRUCTIONS.md`
-  - `tests/lab_engine/wal/test_models.py` — 72 testes em 10 classes (aceitação parametrizada, patterns, minLength, enums, extra-forbid/allowed, strict-types, tz-aware, wire-format, round-trip, frozen)
-  - Fix `pyproject.toml`: bug PEP 621 do remote (`version` estático **e** em `dynamic` simultâneo — bloqueava builds); + `lab_engine/*` em `packages.find`
-- **TDD (M3):** testes PRIMEIRO (RED: `ModuleNotFoundError`) → implementação (GREEN) → expansão pós-gates (RED→GREEN)
-- **Gates:**
-  - `python-reviewer`: 3 bloqueadores C1 (bool em number), C2 (wire-format `by_alias`), H7 (tz-aware) + demais — **TODOS endereçados** (StrictInt/StrictFloat, serialize_by_alias, AfterValidator tz-aware, frozen, remover populate_by_name, D9_vies→NumberOrStr)
-  - `tdd-guide`: APROVADO c/ recomendações R1-R4 (timestamp-forbid test, alias-literal assert, enum positive coverage, error_metrics spec-drift) — **TODAS endereçadas**
-  - `verify-change` (detect_changes): risk LOW, 0 processos afetados
-  - `ruff`: All checks passed! (F401 resolvidos pela reescrita dos testes)
-- **Métricas (todas ✓):** 72/72 testes ✅ · cobertura **100%** (`models.py`: 117 stmts, 0 miss) · ruff clean · probe canônico 8/8 ✅
-- **Decisões de fidelidade (registradas em "ESTADO ATUAL"):** ver acima. Destaque: `error_metrics`/`patches` aceitam extras (schema não declara forbid) — fidelidade ao contrato vence.
-- **Notas para T03+:**
-  - `models.py` pronto para consumo por `store.py` (serializar `by_alias=True` para wire-format).
-  - `auto_fix` (log_id/timestamp.created, L2325) fica para **T04** (`validator.py`).
-  - Rodar testes via `.venv/bin/python -m pytest` (não `uv run` — trava em `vtk` cp313 sem wheel).
-  - `pyproject.toml`: ainda faltam `alembic`, `pydantic-settings` para T03; `structlog` p/ T07; `typer` p/ T10.
+### T02 ✅ — Modelos Pydantic v2 do WAL (FASE 1) — T02.D concluído, T02.D++ VAZIO
+- **Data:** 2026-06-22 (reabertura + resolução 100%)
+- **Contexto da reabertura:** T02 havia sido marcado ✅ prematuramente (gaps: DoD round-trip JSON Schema não validado, mypy/bandit não rodados, ranges D-campos "0-100%" sem decisão registrada). Mandato T0x.D/T0x.D++ (ver plano) exige `D++` vazio para avançar — reaberto e **100% resolvido**.
+
+#### T02.D — sucessos (validado, gates verdes)
+- `lab_engine/wal/models.py` — 9 sub-modelos + `WalLog`, 5 `StrEnum` (`Domain`×10, `Scale`×3, `ValidationStatus`, `RigorStatus`, `SecurityClassification`), fiéis ao JSON Schema L2198-2320 do `INSTRUCTIONS.md`.
+  - Fidelidade canônica: `extra="forbid"` onde schema declara; `extra="allow"` onde NÃO declara (`error_metrics`, `patches`).
+  - `NumberOrStr = StrictInt | StrictFloat | str` (rejeita bool); timestamps tz-aware (`AfterValidator`); `frozen=True`; wire-format `"5w1h"` (`serialize_by_alias=True`, sem `populate_by_name`).
+  - Enums em `enum.StrEnum` (Python 3.11+, satisfaz ruff UP042). `# nosec B105` nos 2 `PASS` (valor de enum, não credencial) — justificativa no docstring.
+- `tests/lab_engine/wal/test_models.py` — **90 testes** em 11 classes + **`TestSchemaFidelity` (18 testes) validando o DoD "Round-trip JSON Schema"** — introspeção de `model_json_schema(by_alias=True)` ($defs, required, additionalProperties, patterns, enums, minLength). AAA comments nos testes multi-linha.
+- `pyproject.toml` — gates permanentes declarados: `[tool.mypy] strict`, `[tool.ruff] E,F,W,I,UP,B`, `[tool.bandit]`; fix bug PEP 621 do remote (`dynamic=["version"]` removido); `lab_engine/*` em `packages.find`.
+- **TDD (M3):** testes PRIMEIRO (RED) → implementação (GREEN) → expansão pós-gates (RED→GREEN) → `TestSchemaFidelity` (DoD round-trip) → `StrEnum` (UP042).
+- **Gates (todos ✓ em `.venv`):**
+  - `ruff` → **All checks passed!**
+  - `mypy --strict` → **Success: no issues found in 1 source file**
+  - `bandit -r lab_engine/wal/` → **0 issues** (Low/Med/High/Undefined 0; stderr limpo)
+  - `pytest` → **90 passed** · cobertura **100%** (`models.py`: 117 stmts, 0 miss)
+  - `python-reviewer`/`tdd-guide`/`verify-change`: bloqueadores C1/C2/H7 + recomendações R1-R4 — **TODOS endereçados** (StrictInt/Float, serialize_by_alias, AfterValidator tz-aware, frozen, TestSchemaFidelity, StrEnum, AAA).
+- **Decisões de contrato registradas no plano** (`Plans/peaceful-herding-otter.md` § "Decisões de contrato registradas"): D-T02.1 (ranges não-inventados), D-T02.2 (parameters=object), D-T02.3 (StrEnum), D-T02.4 (forbid/allow por fidelidade).
+
+#### T02.D++ — Todo pós-Done → **VAZIO** (todos resolvidos ou rastreados como Emenda não-bloqueante)
+- ~~DoD round-trip JSON Schema não validado~~ → **RESOLVIDO**: `TestSchemaFidelity` (18 testes).
+- ~~mypy/bandit não rodados~~ → **RESOLVIDO**: ambos verdes (mypy Success, bandit 0 issues).
+- ~~H2 ranges D-campos "0-100%" sem decisão~~ → **DECIDIDO + EMENDA**: D-T02.1 (não inventar ranges) + **EMENDA-E001** (elevar description a `minimum/maximum` no INSTRUCTIONS.md, **pós-T13, não-bloqueante**).
+- ~~UP042 `(str,Enum)`~~ → **RESOLVIDO**: adoção de `StrEnum` (D-T02.3 revisada).
+- ~~AAA comments~~ → **RESOLVIDO** nos testes multi-linha.
+- ~~bandit nosec stderr ruído~~ → **RESOLVIDO**: nosec isolado + justificativa no docstring.
+
+#### Notas para T03+
+- `models.py` pronto para consumo por `store.py` (serializar `by_alias=True` para wire-format; desserializar via `model_validate_json`).
+- `auto_fix` (log_id/timestamp.created, L2325) fica para **T04** (`validator.py`).
+- **EMENDA-E001** (ranges D-campos) — rastreada, pós-T13. Não bloqueia T03-T13.
 
 ### T01 ✅ — Rename `workspaces/`→`instruments/` + contrato LAB-ENGINE (FASE 0)
 - **Data:** 2026-06-22

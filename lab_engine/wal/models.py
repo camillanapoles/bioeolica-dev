@@ -22,7 +22,7 @@ sempre emite ``"5w1h"``). Assim entrada **e** saída são wire-format puro.
 from __future__ import annotations
 
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Annotated, Any
 
 from pydantic import (
@@ -74,7 +74,7 @@ NumberOrStr = StrictInt | StrictFloat | str
 # Enums canônicos (do INSTRUCTIONS.md L2259-2261, L2271, L2291, L2314)
 # --------------------------------------------------------------------------- #
 
-class Domain(str, Enum):
+class Domain(StrEnum):
     """Os 10 domínios de engenharia (conteúdo variável, estrutura invariante)."""
 
     MECANICA = "mecanica"
@@ -93,7 +93,7 @@ class Domain(str, Enum):
 VALID_DOMAINS = frozenset(d.value for d in Domain)
 
 
-class Scale(str, Enum):
+class Scale(StrEnum):
     """Escala M³ (Macro-Meso-Micro) — INSTRUCTIONS.md L2261, L653."""
 
     MACRO = "macro"
@@ -101,22 +101,28 @@ class Scale(str, Enum):
     MICRO = "micro"
 
 
-class ValidationStatus(str, Enum):
-    """Status de validação do log — INSTRUCTIONS.md L2168, L2271."""
+class ValidationStatus(StrEnum):
+    """Status de validação do log — INSTRUCTIONS.md L2168, L2271.
 
-    PASS = "PASS"
+    ``PASS`` é valor canônico do enum, não credencial — daí o ``# nosec B105``.
+    """
+
+    PASS = "PASS"  # nosec B105
     FAIL = "FAIL"
     PENDING = "PENDING"
 
 
-class RigorStatus(str, Enum):
-    """D3_rigor (PASS/FAIL) — INSTRUCTIONS.md L2291."""
+class RigorStatus(StrEnum):
+    """D3_rigor (PASS/FAIL) — INSTRUCTIONS.md L2291.
 
-    PASS = "PASS"
+    ``PASS`` é valor canônico do enum, não credencial — daí o ``# nosec B105``.
+    """
+
+    PASS = "PASS"  # nosec B105
     FAIL = "FAIL"
 
 
-class SecurityClassification(str, Enum):
+class SecurityClassification(StrEnum):
     """Classificação de segurança — INSTRUCTIONS.md L2314.
 
     Determina encriptação e acesso (consumido em T03/T04 ao persistir).
