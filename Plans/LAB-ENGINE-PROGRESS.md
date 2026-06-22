@@ -36,25 +36,55 @@ atividade permanece in_progress, próxima NÃO inicia.
 
 ## ESTADO ATUAL
 
-- **Atividade corrente:** T01 ✅ CONCLUÍDA → próxima = **T02**
-- **Último commit:** `2d91da6` (sync origin/main)
-- **Branch:** `main` (local == remote)
-- **Grafo:** 8557 nodes / 13377 edges / 192 flows (reindexado pós-T01)
-- **Stack a instalar em T02:** `uv`, SQLAlchemy 2.0 + Alembic, Pydantic v2 + pydantic-settings, FastAPI, Typer, pytest + pytest-asyncio + hypothesis, structlog
+- **Atividade corrente:** T02 ✅ CONCLUÍDA → próxima = **T03**
+- **Último commit:** (a seguir — `feat(wal): modelos Pydantic v2 do WAL (T02)`)
+- **Branch:** `main`
+- **Grafo:** 8567 nodes / 13387 edges / 192 flows (gitnexus auto-update pós-T02)
+- **Stack:** Pydantic v2 ✅ (em pyproject). Faltam p/ T03+: `alembic`, `pydantic-settings` (SQLAlchemy 2.0 já presente). Faltam p/ T07+: `structlog`. Faltam p/ T10: `typer` (+ entry `[project.scripts] lab-engine`).
 
 ## Próxima ação (retomar aqui)
 
-**T02 — Modelos Pydantic do WAL** (`lab_engine/wal/models.py`)
-- Espelhar o JSON Schema do `INSTRUCTIONS.md:2198-2267` em Pydantic v2
-- `WalLog` com: log_id (UUID pattern), timestamp (created/started/finished), 5w1h (what/why min 10), map_index (project ^PRODUTO-, domain enum 10, scale macro/meso/micro, task ^TASK-), validation (PASS/FAIL/PENDING), quality_metrics D1-D10, patches
-- TDD: testes de schema PRIMEIRO (aceita válidos, REJEITA inválidos)
-- Gate: tdd-guide + python-reviewer
-- Métrica: 100% casos do JSON Schema cobertos; ≥80% módulo
-- **Atenção:** T03 precisa de `pyproject.toml` com deps — checar se commit remoto `1e2004e` (DB unify, pyproject deps) já preencheu o shell vazio.
+**T03 — Persistência + CRUD WAL (SQLAlchemy 2.0 + Alembic)** (`lab_engine/wal/store.py`)
+- Repository pattern: `create/read/update/list/by-parent/by-task` em SQLite
+- Toda I/O do WAL via CRUD — **nunca** arquivos soltos (mandato: "CRUD em banco de dados")
+- Migration inicial (Alembic) aplicável/reversível
+- Adicionar `alembic` + `pydantic-settings` ao `pyproject.toml`
+- **Consumir** `WalLog` de `lab_engine/wal/models.py` (T02 ✅): serializar via `model_dump_json(by_alias=True)` para persistir wire-format
+- Gate: tdd-guide + security-reviewer (injection no repository) + verify-quality
+- Métrica: transações testadas (commit/rollback); 0 string-concat em queries
+
+### Decisões de fidelidade canônica estabelecidas em T02 (herdam para T03+)
+- `additionalProperties: false` **onde** o schema INSTRUCTIONS.md declara (timestamp, 5w1h, where, how, map_index, validation, quality_metrics, top-level)
+- `additionalProperties` **permitido** onde o schema NÃO declara forbid: `error_metrics` (L2274-2281) e `patches` (L2304-2311) — fidelidade ao contrato vence sobre garantismo implícito
+- `NumberOrStr = StrictInt | StrictFloat | str` (rejeita bool — "number" ≠ bool)
+- timestamps **timezone-aware** (format: date-time = RFC 3339)
+- `frozen=True` em todos os modelos (WAL append-only)
+- wire-format `"5w1h"` na entrada E saída (`serialize_by_alias=True`, sem `populate_by_name`)
+- D-campos `"0-100%"` são só *description* — **não** inventar ranges (deferido: exigiria emenda ao INSTRUCTIONS.md)
 
 ---
 
 ## LOG DE ATIVIDADES
+
+### T02 ✅ — Modelos Pydantic v2 do WAL (FASE 1, source of truth garantista)
+- **Data:** 2026-06-22
+- **Feito:**
+  - `lab_engine/wal/models.py` — 9 sub-modelos + `WalLog`, 5 enums (`Domain`×10, `Scale`×3, `ValidationStatus`, `RigorStatus`, `SecurityClassification`), espelhando fielmente o JSON Schema L2198-2320 do `INSTRUCTIONS.md`
+  - `tests/lab_engine/wal/test_models.py` — 72 testes em 10 classes (aceitação parametrizada, patterns, minLength, enums, extra-forbid/allowed, strict-types, tz-aware, wire-format, round-trip, frozen)
+  - Fix `pyproject.toml`: bug PEP 621 do remote (`version` estático **e** em `dynamic` simultâneo — bloqueava builds); + `lab_engine/*` em `packages.find`
+- **TDD (M3):** testes PRIMEIRO (RED: `ModuleNotFoundError`) → implementação (GREEN) → expansão pós-gates (RED→GREEN)
+- **Gates:**
+  - `python-reviewer`: 3 bloqueadores C1 (bool em number), C2 (wire-format `by_alias`), H7 (tz-aware) + demais — **TODOS endereçados** (StrictInt/StrictFloat, serialize_by_alias, AfterValidator tz-aware, frozen, remover populate_by_name, D9_vies→NumberOrStr)
+  - `tdd-guide`: APROVADO c/ recomendações R1-R4 (timestamp-forbid test, alias-literal assert, enum positive coverage, error_metrics spec-drift) — **TODAS endereçadas**
+  - `verify-change` (detect_changes): risk LOW, 0 processos afetados
+  - `ruff`: All checks passed! (F401 resolvidos pela reescrita dos testes)
+- **Métricas (todas ✓):** 72/72 testes ✅ · cobertura **100%** (`models.py`: 117 stmts, 0 miss) · ruff clean · probe canônico 8/8 ✅
+- **Decisões de fidelidade (registradas em "ESTADO ATUAL"):** ver acima. Destaque: `error_metrics`/`patches` aceitam extras (schema não declara forbid) — fidelidade ao contrato vence.
+- **Notas para T03+:**
+  - `models.py` pronto para consumo por `store.py` (serializar `by_alias=True` para wire-format).
+  - `auto_fix` (log_id/timestamp.created, L2325) fica para **T04** (`validator.py`).
+  - Rodar testes via `.venv/bin/python -m pytest` (não `uv run` — trava em `vtk` cp313 sem wheel).
+  - `pyproject.toml`: ainda faltam `alembic`, `pydantic-settings` para T03; `structlog` p/ T07; `typer` p/ T10.
 
 ### T01 ✅ — Rename `workspaces/`→`instruments/` + contrato LAB-ENGINE (FASE 0)
 - **Data:** 2026-06-22
