@@ -36,8 +36,8 @@ atividade permanece in_progress, próxima NÃO inicia.
 
 ## ESTADO ATUAL
 
-- **Atividade corrente:** **T05 🚧 em curso — T05.1 ✅, T05.2 ✅, T05.3 ✅** (Event store/bus + Command bus + Handlers). `runtime/events.py` (EventStore+EventBus, 17 testes 100%) + `runtime/bus.py` (Command/CommandBus/CommandResult, 19 testes 100%) + `runtime/handlers.py` (4 handlers + 4 gates do publish_context, **13 testes 100% cobertura**); gates ruff/mypy --strict/bandit verdes. **Próximo: T05.4** (`Projection` + `replay(project)` — reconstroi `ProjectState` agregado; idempotência). Split T05.1-T05.5 (2/5 pendentes: T05.4, T05.5). T04 ✅.
-- **Último commit:** `8792bb2` (T05.2 ✅ — command bus CQRS-lite). T05.3 (handlers.py) a commitar abaixo (M4).
+- **Atividade corrente:** **T05 🚧 em curso — T05.1 ✅, T05.2 ✅, T05.3 ✅, T05.4 ✅** (Event store/bus + Command bus + Handlers + Projection). `runtime/events.py` (EventStore+EventBus, 17 testes 100%) + `runtime/bus.py` (Command/CommandBus/CommandResult, 19 testes 100%) + `runtime/handlers.py` (4 handlers + 4 gates do publish_context, **13 testes 100% cobertura**) + `runtime/projection.py` (`ProjectState` + `replay`, **8 testes 100% cobertura**); gates ruff/mypy --strict/bandit verdes. **Próximo: T05.5** (gates finais + cobertura ≥80% runtime + commit + sync → retorna ao mestre, marca T05 ✅). Split T05.1-T05.5 (1/5 pendente: T05.5). T04 ✅.
+- **Último commit:** `e8a76f0` (T05.3 ✅ — handlers 4 commands + 4 gates publish_context). T05.4 (projection.py) a commitar abaixo (M4).
 - **Branch:** `main`
 - **Stack:** Pydantic v2 ✅ · SQLAlchemy 2.0 ✅ · `alembic` 1.18.4 ✅ · `pydantic-settings` ✅ · `hypothesis>=6` ✅ (adicionado em T04) · `ruff`/`mypy`/`bandit` ✅. Faltam p/ T07: `structlog`. Faltam p/ T10: `typer`.
 - **Gates permanentes verdes em T04:** ruff (`E,F,W,I,UP,B`) ✅ · mypy `--strict` (8 source files) ✅ · bandit 0 issues ✅ · pytest **164 passed** (90 T02 + 21 T03.4 + 29 T04 validator + 24 T04 auditor, regressão nula) · cobertura **98%** (validator 100%, auditor 97%). Workaround `.venv/bin/python -m pytest` (shebang quebrado — ver T03.4.D++).
@@ -45,16 +45,16 @@ atividade permanece in_progress, próxima NÃO inicia.
 
 ## Próxima ação (retomar aqui)
 
-**T05.4 — Projection + replay** (FASE 2 — Runtime event-driven)
-- **Ritual de transição T05.3→T05.4 (executar primeiro):**
-  1. Re-rodar gates permanentes de T05 (verdes pós-commit): `ruff check lab_engine/ tests/lab_engine/`, `mypy --strict lab_engine/`, `bandit -r lab_engine/`, `python -m pytest tests/lab_engine/ -q`. Tudo verde.
-  2. Confirmar `T05.3.D++` vazio (ou itens designados) no LOG abaixo. ✅ (itens designados a T08 — não-bloqueantes).
-  3. Confirmar `git status` limpo + `git rev-parse HEAD == origin/main` (após push de T05.3).
-  4. `gitnexus analyze` (M0) — índice stale; necessário antes de editar símbolos em T05.4.
-- **Faixa T05.4:** `lab_engine/runtime/projection.py` — `ProjectState` agregado (contagem de logs por task, último log, status derivado) + `replay(project, store) -> ProjectState` (consome `EventStore.stream`, idempotente — replay reconstroi o mesmo estado).
-- **DoD T05.4:** replay idempotente; `ProjectState` reflete o WAL do projeto.
-- **Gate T05.4:** `tdd-guide` + `code-reviewer`.
-- **Mandato vigente:** **"GARANTIR TODAS ENTRADAS E SAÍDAS CRUD EM BANCO DE DADOS"** — replay lê do `EventStore` (projeção do WAL em BD), nunca de arquivos soltos.
+**T05.5 — Gates finais + cobertura ≥80% + commit + sync (M4) → retorna ao mestre** (FASE 2 — Runtime event-driven)
+- **Ritual de transição T05.4→T05.5 (executar primeiro):**
+  1. Re-rodar gates permanentes de T05 (verdes pós-commit T05.4): `ruff check lab_engine/ tests/lab_engine/`, `mypy --strict lab_engine/`, `bandit -r lab_engine/`, `python -m pytest tests/lab_engine/ -q`. Tudo verde.
+  2. Confirmar `T05.4.D++` vazio no LOG abaixo. ✅ (vazio — replay é read-only puro).
+  3. Confirmar `git status` limpo + `git rev-parse HEAD == origin/main` (após push de T05.4).
+  4. `gitnexus analyze` (M0) — índice stale em `c1a8f33`; necessário antes de T06 (editará símbolos do runtime). Pode rodar em T05.5 ou no ritual T05→T06.
+- **Faixa T05.5:** confirmação final dos gates do split T05 inteiro (events+bus+handlers+projection): cobertura agregada ≥80% no `lab_engine/runtime/`, regressão 221 passed, ruff/mypy/bandit verdes. Commit + push (M4). Marca **T05 ✅** no mestre → **retorna ao fluxo T06** (Workflow F1-F9 FSM).
+- **DoD T05.5:** cobertura ≥80% runtime; T05 ✅ no mestre; `main` sincronizado.
+- **Gate T05.5:** `verify-quality`.
+- **Mandato vigente:** **"GARANTIR TODAS ENTRADAS E SAÍDAS CRUD EM BANCO DE DADOS"** — todo o runtime T05 lê/escreve via `WalRepository` (BD), nunca arquivos soltos.
 
 ### Decisões de fidelidade canônica estabelecidas em T02 (herdam para T03+)
 - `additionalProperties: false` **onde** o schema INSTRUCTIONS.md declara (timestamp, 5w1h, where, how, map_index, validation, quality_metrics, top-level)
@@ -86,8 +86,8 @@ atividade permanece in_progress, próxima NÃO inicia.
 | **T05.1** | `runtime/events.py` — `EventStore` (stream sobre `wal_logs`) + `EventBus` (pub/sub in-proc) | tdd + python | ✅ |
 | **T05.2** | `runtime/bus.py` — `Command` (Pydantic frozen) + `CommandBus` (dispatch + registry) + `CommandResult` | tdd + python | ✅ |
 | **T05.3** | Handlers 4 commands: `new_project`, `publish_context` [4 gates], `allocate_task`, `derive_team` | tdd + security | ✅ |
-| **T05.4** | `Projection` + `replay(project)` — reconstroi `ProjectState` agregado; idempotência | tdd + review | 🚧 corrente |
-| **T05.5** | Gates verdes + cobertura ≥80% + commit + sync (M4) → retorna ao mestre | verify-quality | ⏳ |
+| **T05.4** | `Projection` + `replay(project)` — reconstroi `ProjectState` agregado; idempotência | tdd + review | ✅ |
+| **T05.5** | Gates verdes + cobertura ≥80% + commit + sync (M4) → retorna ao mestre | verify-quality | 🚧 corrente |
 
 #### T05.1.D (sucessos validados)
 - 4 arquivos criados: `lab_engine/runtime/__init__.py`, `lab_engine/runtime/events.py` (`EventStore` + `EventBus`), `tests/lab_engine/runtime/conftest.py` (importlib do canonical log do wal + fixtures de infra locais), `tests/lab_engine/runtime/test_events.py` (17 testes AAA).
@@ -131,6 +131,20 @@ atividade permanece in_progress, próxima NÃO inicia.
 #### T05.3.D++ (débito pós-done — NÃO bloqueia T05.4)
 - **D++ (rastreio → T08):** GATE 4 Revisor Hostil é **stub PASS** (D-T05.3.2). A revisão adversarial real (via agente) é **designada a T08** (A2A + agent registry). Não-bloqueante — o gate existe como ponto de extensão fiel ao `propagation-proto.sh`; T05.4/T05.5 não dependem dele.
 - **D++ (design, invariante validator):** guard `if result.log is None` (2 sites, `# pragma: no cover`) é branch infeasible pela invariante do validator (`valid==True ↔ log is not None`, D-T04.2 docstring L81-82). Mantido por garantismo (bug no validator → failure graciosa em vez de `TypeError`) + satisfaz mypy --strict (narrowing). Sem ação.
+
+#### Decisões D-T05.4 — Projection + replay (event-sourced read-side)
+- **D-T05.4.1** — `ProjectState` é `dataclass(frozen=True)` (imutável, consistente com a camada de modelos WAL). Agregados derivados: `total_logs`, `counts_by_task`, `counts_by_status`, `last_log`.
+- **D-T05.4.2** — `replay(project, store)` reduz `store.stream(project)` a um agregado; **stateless** (nenhum estado em memória além do retornado — sem cache entre chamadas).
+- **D-T05.4.3** — `last_log` = último yielded pelo stream (maior `(timestamp.created, log_id)`, ordenação D-T05.1); `None` se o projeto não tem logs.
+- **D-T05.4.4** — `validation.status` (`ValidationStatus` StrEnum) convertido a `str` → `counts_by_status: dict[str, int]` limpo e type-safe (mypy --strict).
+
+#### T05.4.D (sucessos validados)
+- 2 arquivos: `lab_engine/runtime/projection.py` (`ProjectState` frozen + `replay`), `tests/lab_engine/runtime/test_projection.py` (8 testes AAA).
+- `replay` consome `EventStore.stream` (projeção ordenada do WAL em BD, D-T05.1) → agregado determinístico. Idempotência verificada (`state1 == state2`); `last_log` = mais recente mesmo com inserção não-ordenada (stream ordena por `(created, log_id)`); agregação por task/status; isolamento por projeto; projeto vazio → estado-zero; `ProjectState` frozen (`FrozenInstanceError` na mutação).
+- Gates: ruff ✅ · mypy --strict ✅ (13 source files) · bandit clean ✅ · pytest **8/8 ✅** · cobertura **100%** em `projection.py` (24 stmts, 0 miss). Regressão: **221 passed** (T02+T03+T04+T05.1-T05.4). `detect_changes`: risk low, 0 símbolos/processos existentes afetados (só adiciona).
+
+#### T05.4.D++ (débito pós-done — NÃO bloqueia T05.5)
+- **(vazio)** — `replay` é read-only puro (0 efeito colateral, 0 mutação, 0 I/O externo além do `EventStore` que lê do BD); sem gates a deferir, sem branches infeasible.
 
 ---
 
