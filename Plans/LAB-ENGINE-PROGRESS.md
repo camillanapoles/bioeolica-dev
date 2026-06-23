@@ -36,8 +36,8 @@ atividade permanece in_progress, próxima NÃO inicia.
 
 ## ESTADO ATUAL
 
-- **Atividade corrente:** **T05 🚧 em curso — T05.1 ✅, T05.2 ✅** (Event store/bus + Command bus). `runtime/events.py` (EventStore+EventBus, 17 testes 100%) + `runtime/bus.py` (`Command`/`CommandBus`/`CommandResult`, 19 testes **100% cobertura**); gates ruff/mypy --strict/bandit verdes. **Próximo: T05.3** (handlers 4 commands: `new_project`, `publish_context` [4 gates], `allocate_task`, `derive_team`). Split T05.1-T05.5 (2/5 pendentes). T04 ✅.
-- **Último commit:** `c1a8f33` (T05.1 ✅ — event store + event bus, projeção do WAL). T05.2 (bus.py) a commitar abaixo (M4).
+- **Atividade corrente:** **T05 🚧 em curso — T05.1 ✅, T05.2 ✅, T05.3 ✅** (Event store/bus + Command bus + Handlers). `runtime/events.py` (EventStore+EventBus, 17 testes 100%) + `runtime/bus.py` (Command/CommandBus/CommandResult, 19 testes 100%) + `runtime/handlers.py` (4 handlers + 4 gates do publish_context, **13 testes 100% cobertura**); gates ruff/mypy --strict/bandit verdes. **Próximo: T05.4** (`Projection` + `replay(project)` — reconstroi `ProjectState` agregado; idempotência). Split T05.1-T05.5 (2/5 pendentes: T05.4, T05.5). T04 ✅.
+- **Último commit:** `8792bb2` (T05.2 ✅ — command bus CQRS-lite). T05.3 (handlers.py) a commitar abaixo (M4).
 - **Branch:** `main`
 - **Stack:** Pydantic v2 ✅ · SQLAlchemy 2.0 ✅ · `alembic` 1.18.4 ✅ · `pydantic-settings` ✅ · `hypothesis>=6` ✅ (adicionado em T04) · `ruff`/`mypy`/`bandit` ✅. Faltam p/ T07: `structlog`. Faltam p/ T10: `typer`.
 - **Gates permanentes verdes em T04:** ruff (`E,F,W,I,UP,B`) ✅ · mypy `--strict` (8 source files) ✅ · bandit 0 issues ✅ · pytest **164 passed** (90 T02 + 21 T03.4 + 29 T04 validator + 24 T04 auditor, regressão nula) · cobertura **98%** (validator 100%, auditor 97%). Workaround `.venv/bin/python -m pytest` (shebang quebrado — ver T03.4.D++).
@@ -45,16 +45,16 @@ atividade permanece in_progress, próxima NÃO inicia.
 
 ## Próxima ação (retomar aqui)
 
-**T05 — Command bus + event store + handlers** (FASE 2 — Runtime event-driven)
-- **Ritual de transição T04→T05 (executar primeiro):**
-  1. Re-rodar gates permanentes de T04 (verdes pós-commit): `ruff check lab_engine/ tests/lab_engine/`, `mypy --strict lab_engine/`, `bandit -r lab_engine/`, `python -m pytest tests/lab_engine/wal/ -q`. Tudo verde.
-  2. Confirmar `T04.D++` vazio no LOG abaixo. ✅
-  3. Confirmar `git status` limpo + `git rev-parse HEAD == origin/main` (após push de T04). ✅
-  4. `gitnexus analyze` (M0) — índice stale (antes de T04); necessário antes de editar símbolos em T05.
-- **Faixa T05:** `lab_engine/runtime/bus.py` — commands (`new_project`, `publish_context` [4 gates], `allocate_task`, `derive_team`) + event store append-only no BD + pub/sub.
-- **DoD T05:** cada command produz ≥1 evento WAL; handlers reagem; replay de eventos reconstroi estado.
-- **Gate T05:** `tdd-guide` + `python-reviewer` (async/concorrência) + `verify-change`.
-- **Mandato vigente:** **"GARANTIR TODAS ENTRADAS E SAÍDAS CRUD EM BANCO DE DADOS"** — event store append-only persistido em BD (não arquivos soltos); handlers emitem eventos WAL via `validator.validate` → `store.create` (cadeia T04→T03).
+**T05.4 — Projection + replay** (FASE 2 — Runtime event-driven)
+- **Ritual de transição T05.3→T05.4 (executar primeiro):**
+  1. Re-rodar gates permanentes de T05 (verdes pós-commit): `ruff check lab_engine/ tests/lab_engine/`, `mypy --strict lab_engine/`, `bandit -r lab_engine/`, `python -m pytest tests/lab_engine/ -q`. Tudo verde.
+  2. Confirmar `T05.3.D++` vazio (ou itens designados) no LOG abaixo. ✅ (itens designados a T08 — não-bloqueantes).
+  3. Confirmar `git status` limpo + `git rev-parse HEAD == origin/main` (após push de T05.3).
+  4. `gitnexus analyze` (M0) — índice stale; necessário antes de editar símbolos em T05.4.
+- **Faixa T05.4:** `lab_engine/runtime/projection.py` — `ProjectState` agregado (contagem de logs por task, último log, status derivado) + `replay(project, store) -> ProjectState` (consome `EventStore.stream`, idempotente — replay reconstroi o mesmo estado).
+- **DoD T05.4:** replay idempotente; `ProjectState` reflete o WAL do projeto.
+- **Gate T05.4:** `tdd-guide` + `code-reviewer`.
+- **Mandato vigente:** **"GARANTIR TODAS ENTRADAS E SAÍDAS CRUD EM BANCO DE DADOS"** — replay lê do `EventStore` (projeção do WAL em BD), nunca de arquivos soltos.
 
 ### Decisões de fidelidade canônica estabelecidas em T02 (herdam para T03+)
 - `additionalProperties: false` **onde** o schema INSTRUCTIONS.md declara (timestamp, 5w1h, where, how, map_index, validation, quality_metrics, top-level)
@@ -85,8 +85,8 @@ atividade permanece in_progress, próxima NÃO inicia.
 |---|---|---|---|
 | **T05.1** | `runtime/events.py` — `EventStore` (stream sobre `wal_logs`) + `EventBus` (pub/sub in-proc) | tdd + python | ✅ |
 | **T05.2** | `runtime/bus.py` — `Command` (Pydantic frozen) + `CommandBus` (dispatch + registry) + `CommandResult` | tdd + python | ✅ |
-| **T05.3** | Handlers 4 commands: `new_project`, `publish_context` [4 gates], `allocate_task`, `derive_team` | tdd + security | 🚧 corrente |
-| **T05.4** | `Projection` + `replay(project)` — reconstroi `ProjectState` agregado; idempotência | tdd + review | ⏳ |
+| **T05.3** | Handlers 4 commands: `new_project`, `publish_context` [4 gates], `allocate_task`, `derive_team` | tdd + security | ✅ |
+| **T05.4** | `Projection` + `replay(project)` — reconstroi `ProjectState` agregado; idempotência | tdd + review | 🚧 corrente |
 | **T05.5** | Gates verdes + cobertura ≥80% + commit + sync (M4) → retorna ao mestre | verify-quality | ⏳ |
 
 #### T05.1.D (sucessos validados)
@@ -115,6 +115,22 @@ atividade permanece in_progress, próxima NÃO inicia.
 #### T05.2.D++ (débito pós-done — NÃO bloqueia T05.3)
 - **D++ (rastreio):** `CommandBus.dispatch` usa `except Exception` amplo (intencional — resiliência D-T05.2.4, pré-figura T07); documentado no docstring. bandit não sinalizou (mesmo pattern do `EventBus`).
 - **D++ (design, futuro):** `events: list[WalLog]` é `list` mutável em modelo `frozen` — Pydantic bloqueia reassign do atributo mas não mutação interna da lista. Inofensivo (handler constrói e não muta); alinhado ao pattern de `models.py` (`child_logs: list[str]` frozen). Sem ação.
+
+#### Decisões D-T05.3 — Handlers (4 commands + 4 gates publish_context)
+- **D-T05.3.1** — handler **impõe** `map_index.task` canônico do command_type (`CMD-NEW-PROJECT`→`TASK-NEW-PROJECT`, etc) via `_COMMAND_TASK_MAP` + `deepcopy` do payload. Não forjável pelo caller — garante rastreabilidade (event_type sempre reflete o command canônico, fiel ao pattern `^TASK-` do schema).
+- **D-T05.3.2** — `publish_context` aplica 4 gates fiéis ao `propagation-proto.sh` emergido (T12 checará reprodutibilidade): GATE 1 Schema (= `validator.validate` T04) · GATE 2 Sanity (formato `LOG-UUID` do `parent_log` — consistência referencial **não** coberta pelo schema; a existência é do auditor T04 `ORPHAN`) · GATE 3 Freshness (`created < 24h`, mesmo critério do `PENDING_STALE` D-T04.4) · GATE 4 Revisor Hostil (**stub PASS**; revisão adversarial real via agente em T08). Handlers simples (new_project/allocate/derive) só aplicam GATE 1 (criações diretas, sem pipeline de QA completo).
+- **D-T05.3.3** — persiste só se todos os gates passam; falha → `CommandResult(success=False)` **sem persistir** (não polui o WAL). Verificado por testes que negam a persistência (`list(store.stream(project)) == []`).
+- **D-T05.3.4** — `build_handlers(store, *, now=None) -> dict[str, CommandHandler]` com `EventStore` injetado (separation: handler sabe runtime, caller sabe domínio). `now` overrideable para testar freshness deterministicamente.
+
+#### T05.3.D (sucessos validados)
+- 2 arquivos: `lab_engine/runtime/handlers.py` (`build_handlers` + 4 handlers + `GateError` + 4 gates + `_coerce_wal`), `tests/lab_engine/runtime/test_handlers.py` (13 testes AAA via `CommandBus`+`EventStore` reais).
+- Handlers despachados por `CommandBus` real; cada handler valida (`validator.validate`) → persiste (`EventStore.append`); `_coerce_wal` impõe task canônico (D-T05.3.1) + `deepcopy` (não muta o `payload` do caller).
+- 4 gates do `publish_context` cobertos: G1 Schema (fail: `what` curto <10) · G2 Sanity (fail: `parent_log` fora de LOG-UUID; pass: LOG-UUID bem-formado) · G3 Freshness (fail: `created` 3 dias antes do `now` fixo) · G4 Revisor (stub PASS — implícito no success). GATE 0 (payload sem `wal`/não-dict) coberto em handler simples e publish.
+- Gates: ruff ✅ · mypy --strict ✅ (1 file, no issues — guard defensivo `# pragma: no cover` no branch infeasible `valid=True` sem `log`) · bandit clean ✅ · pytest **13/13 ✅** · cobertura **100%** em `handlers.py` (71 stmts, 0 miss). Regressão: **213 passed** (T02+T03+T04+T05.1+T05.2+T05.3). `detect_changes`: risk low, 0 símbolos/processos existentes afetados (só adiciona).
+
+#### T05.3.D++ (débito pós-done — NÃO bloqueia T05.4)
+- **D++ (rastreio → T08):** GATE 4 Revisor Hostil é **stub PASS** (D-T05.3.2). A revisão adversarial real (via agente) é **designada a T08** (A2A + agent registry). Não-bloqueante — o gate existe como ponto de extensão fiel ao `propagation-proto.sh`; T05.4/T05.5 não dependem dele.
+- **D++ (design, invariante validator):** guard `if result.log is None` (2 sites, `# pragma: no cover`) é branch infeasible pela invariante do validator (`valid==True ↔ log is not None`, D-T04.2 docstring L81-82). Mantido por garantismo (bug no validator → failure graciosa em vez de `TypeError`) + satisfaz mypy --strict (narrowing). Sem ação.
 
 ---
 
